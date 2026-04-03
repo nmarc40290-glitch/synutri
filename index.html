@@ -60,13 +60,24 @@
         </div>
 </div>
     
-    
     <nav class="navbar">
-        <a href="#" class="nav-item active"><div class="nav-icon">📊</div>Dashboard</a>
-        <a href="#" class="nav-item"><div class="nav-icon">📅</div>Planning</a>
-        <a href="#" class="nav-item"><div class="nav-icon">📷</div>Scanner</a>
-        <a href="#" class="nav-item"><div class="nav-icon">🛒</div>Courses</a>
+    <a href="javascript:void(0)" onclick="showView('dash')" class="nav-item active" id="nav-dash">
+        <div class="nav-icon">📊</div>Dashboard
+    </a>
+    
+    <a href="javascript:void(0)" class="nav-item">
+        <div class="nav-icon">📅</div>Planning
+    </a>
+    
+    <a href="javascript:void(0)" onclick="showView('search')" class="nav-item" id="nav-search">
+        <div class="nav-icon">📷</div>Scanner
+    </a>
+    
+    <a href="javascript:void(0)" class="nav-item">
+        <div class="nav-icon">🛒</div>Courses
+    </a>
     </nav>
+    
 
     <script src="app.js"></script>
     <script>
