@@ -1,3 +1,21 @@
+
+let db;
+const request = indexedDB.open("SynutriDB", 1);
+
+request.onupgradeneeded = (event) => {
+    db = event.target.result;
+    // On crée un magasin d'objets "aliments" avec l'ID (ou code-barres) comme clé
+    if (!db.objectStoreNames.contains("aliments")) {
+        db.createObjectStore("aliments", { keyPath: "id" });
+    }
+};
+
+request.onsuccess = (event) => {
+    db = event.target.result;
+    console.log("Base de données Synutri prête !");
+};
+
+
 // Affiche la version depuis version.js
 document.getElementById('app-version').innerText = VERSION;
 
