@@ -1,7 +1,6 @@
 importScripts('version.js');
 const CACHE_NAME = `synutri-v${VERSION}`;
 
-// On n'enregistre PAS le sw.js lui-même dans le cache !
 const ASSETS = [
     './',
     './index.html',
@@ -13,24 +12,18 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-    self.skipWaiting(); // Prend la place immédiatement
-    e.waitUntil(
-        caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))
-    );
+    self.skipWaiting(); 
+    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
 });
 
 self.addEventListener('activate', (e) => {
-    e.waitUntil(clients.claim()); // Prend le contrôle des pages ouvertes
-    e.waitUntil(
-        caches.keys().then(keys => Promise.all(
-            keys.map(k => {
-                if (k !== CACHE_NAME) return caches.delete(k);
-            })
-        ))
-    );
+    e.waitUntil(clients.claim()); 
+    e.waitUntil(caches.keys().then(keys => Promise.all(
+        keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
+    )));
 });
 
-// Stratégie : Réseau d'abord, sinon Cache
+// Stratégie : On demande au réseau, SI ça échoue (pas de 4G), on prend le cache
 self.addEventListener('fetch', (e) => {
     e.respondWith(
         fetch(e.request).catch(() => caches.match(e.request))
