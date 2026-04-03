@@ -41,21 +41,26 @@ async function forceUpdate() {
         for (let r of registrations) { await r.unregister(); }
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
-        alert("Mise à jour prête. Redémarrage...");
+        alert("Mise à jour 1.4.0 prête ! Redémarrage...");
         window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
     }
 }
 
-// 3. RECHERCHE ALIMENTS (CORRIGÉE)
+// 3. FONCTION DE COULEUR NUTRI-SCORE
+function getNutriColor(grade) {
+    const colors = { 'a': '#038141', 'b': '#85BB2F', 'c': '#FECB02', 'd': '#EE8100', 'e': '#E63E11' };
+    return colors[grade?.toLowerCase()] || '#cbd5e0';
+}
+
+// 4. RECHERCHE ALIMENTS (AVEC NUTRIMENTS ET NUTRI-SCORE)
 async function rechercherAliment() {
     const resultsDiv = document.getElementById('search-results');
     const query = document.getElementById('search-input').value.trim();
     
     if (query.length < 3) return alert("3 lettres minimum");
 
-    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche de '" + query + "'...</p>";
+    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Analyse de '" + query + "'...</p>";
 
-    // Sécurité : Timeout de 8 secondes pour éviter le blocage
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
@@ -78,43 +83,74 @@ async function rechercherAliment() {
         data.products.forEach(p => {
             const name = p.product_name_fr || p.product_name || "Inconnu";
             const img = p.image_front_small_url || "https://via.placeholder.com/50";
+            const score = p.nutriscore_grade || 'unknown';
+            
+            // Extraction complète des données
+            const nutriments = {
+                calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
+                proteines: p.nutriments.proteins_100g || 0,
+                sucres: p.nutriments.sugars_100g || 0,
+                sel: p.nutriments.salt_100g || 0,
+                score: score
+            };
+
             const card = document.createElement('div');
             card.className = 'card';
-            card.style = "display:flex; align-items:center; gap:15px; margin-bottom:10px; text-align:left; padding:12px; border-radius:15px; background:white; border:1px solid #edf2f7;";
+            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; text-align:left; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7; box-shadow: 0 4px 6px rgba(0,0,0,0.02);";
+            
             card.innerHTML = `
-                <img src="${img}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/50'">
-                <div style="flex:1;"><strong style="font-size:0.9rem;">${name}</strong><br><span style="font-size:0.75rem; color:#718096;">${p.brands || ""}</span></div>
-                <button type="button" onclick="ajouterAlimentLocal('${p.code}', '${name.replace(/'/g, "\\'")}')" style="background:var(--prim); color:white; border:none; padding:10px; border-radius:10px;">+</button>
+                <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/50'">
+                <div style="flex:1;">
+                    <strong style="font-size:0.85rem; display:block; margin-bottom:2px;">${name}</strong>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="background:${getNutriColor(score)}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:0.7rem; text-transform:uppercase;">${score}</span>
+                        <span style="font-size:0.75rem; color:#718096;">${nutriments.calories} kcal</span>
+                    </div>
+                </div>
+                <button type="button" onclick="ajouterAlimentLocal('${p.code}', '${name.replace(/'/g, "\\'")}', ${JSON.stringify(nutriments)})" 
+                        style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px; font-weight:bold; font-size:1.2rem;">+</button>
             `;
             resultsDiv.appendChild(card);
         });
     } catch (e) {
-        resultsDiv.innerHTML = `<p style="color:red;">❌ ${e.name === 'AbortError' ? 'Temps dépassé (connexion lente)' : 'Erreur de connexion'}</p>`;
+        resultsDiv.innerHTML = `<p style="color:red;">❌ Erreur réseau ou timeout.</p>`;
     }
 }
 
-// 4. FAVORIS
-function ajouterAlimentLocal(id, name) {
+// 5. STOCKAGE COMPLET
+function ajouterAlimentLocal(id, name, dataNutri) {
     const transaction = db.transaction(["aliments"], "readwrite");
     const store = transaction.objectStore("aliments");
-    const req = store.add({ id, nom: name, dateAjout: new Date().toISOString() });
-    req.onsuccess = () => { alert("Ajouté !"); showView('dash'); };
-    req.onerror = () => alert("Déjà présent");
+    const item = { id, nom: name, dateAjout: new Date().toISOString(), ...dataNutri };
+    
+    const req = store.add(item);
+    req.onsuccess = () => { 
+        alert(`✅ ${name} enregistré !`); 
+        showView('dash'); 
+    };
+    req.onerror = () => alert("Déjà dans tes favoris.");
 }
 
+// 6. DASHBOARD (AFFICHAGE DU NUTRI-SCORE DANS LA LISTE)
 function chargerAlimentsFavoris() {
     if (!db) return;
     const store = db.transaction(["aliments"], "readonly").objectStore("aliments");
     store.getAll().onsuccess = (e) => {
         const alims = e.target.result;
         const dash = document.getElementById('dash-view');
-        let html = '<h3 style="margin-top:25px; text-align:left;">Derniers ajouts</h3>';
-        if (alims.length === 0) html += '<p>Vide</p>';
+        let html = '<h3 style="margin-top:25px; text-align:left; font-size:1rem;">Derniers ajouts</h3>';
+        
+        if (alims.length === 0) html += '<p style="font-size:0.8rem; color:#a0aec0;">Aucun aliment enregistré.</p>';
         else {
             [...alims].reverse().slice(0, 5).forEach(a => {
-                html += `<div class="card" style="margin-bottom:10px; padding:15px; display:flex; justify-content:space-between; border-radius:15px;">
-                    <span>${a.nom}</span><span style="font-size:0.7rem; color:#cbd5e0;">${new Date(a.dateAjout).toLocaleDateString()}</span>
-                </div>`;
+                html += `
+                    <div class="card" style="margin-bottom:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; border-radius:15px; border:1px solid #f7fafc;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:10px; height:10px; border-radius:50%; background:${getNutriColor(a.score)}"></div>
+                            <span style="font-weight:500; font-size:0.9rem;">${a.nom}</span>
+                        </div>
+                        <span style="font-size:0.7rem; color:#cbd5e0;">${new Date(a.dateAjout).toLocaleDateString()}</span>
+                    </div>`;
             });
         }
         if (document.getElementById('ma-liste')) document.getElementById('ma-liste').remove();
@@ -123,7 +159,7 @@ function chargerAlimentsFavoris() {
     };
 }
 
-// 5. GRAPH
+// 7. GRAPHIQUE (DASHBOARD)
 new ApexCharts(document.querySelector("#pantry-chart"), {
     series: [65, 40, 20], chart: { height: 350, type: 'radialBar' },
     colors: ['#38b2ac', '#ed8936', '#4299e1'], labels: ['Prot.', 'Sel', 'Sucres'],
