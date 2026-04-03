@@ -158,6 +158,11 @@ function supprimerAlimentLocal(id) {
 let chart; // Variable globale pour le graphique
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
+    window.currentKcal = kcal; // On stocke les kcal ici pour le formatter du graphique
+    
+    // Le reste de ton code animerDisque...
+    chart.updateSeries([Math.round(pProt), Math.round(pSel), Math.round(pSucre)]);
+}
     // Calcul des pourcentages basés sur des apports journaliers recommandés (AJR)
     const pProt = Math.min((prot / 50) * 100, 100);
     const pSel = Math.min((sel / 5) * 100, 100);
@@ -168,9 +173,15 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
             radialBar: {
                 dataLabels: {
                     total: {
-                        label: nom.substring(0, 12) + (nom.length > 12 ? '..' : ''),
-                        formatter: function() { return score.toUpperCase(); },
-                        color: getNutriColor(score)
+                    show: true,
+                    label: 'Calories', // Le texte au-dessus du chiffre
+                    color: '#718096',
+                    fontSize: '14px',
+                    formatter: function (w) {
+                            // Cette fonction va chercher la valeur kcal que tu as stockée
+                            // ou calculée lors du clic sur un aliment
+                            return window.currentKcal ? window.currentKcal + " kcal" : "-";
+                        }
                     }
                 }
             }
