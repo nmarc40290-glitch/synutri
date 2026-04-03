@@ -55,37 +55,36 @@ function getNutriColor(grade) {
 // 4. RECHERCHE ALIMENTS (AVEC NUTRIMENTS ET NUTRI-SCORE)
 async function rechercherAliment() {
     const resultsDiv = document.getElementById('search-results');
-    const query = document.getElementById('search-input').value.trim();
+    const input = document.getElementById('search-input');
+    const query = input.value.trim();
     
     if (query.length < 3) return alert("3 lettres minimum");
 
+    // 1. ON VIDE L'ÉCRAN ET ON AFFICHE LE CHARGEMENT (RIEN D'AUTRE)
     resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Analyse de '" + query + "'...</p>";
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    input.blur(); 
 
     try {
-        const url = `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15`;
-        const response = await fetch(url, { 
-            signal: controller.signal,
-            headers: { 'Accept': 'application/json' }
-        });
-        clearTimeout(timeout);
-
+        const url = `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20`;
+        const response = await fetch(url);
         const data = await response.json();
+
+        // 2. ON NE VIDE L'ÉCRAN POUR METTRE LES RÉSULTATS QU'ICI
         resultsDiv.innerHTML = ""; 
 
+        // 3. ON VÉRIFIE SI C'EST VIDE *APRÈS* AVOIR REÇU LES DONNÉES
         if (!data.products || data.products.length === 0) {
-            resultsDiv.innerHTML = "<p>Aucun produit trouvé.</p>";
+            resultsDiv.innerHTML = "<p style='text-align:center; padding:20px;'>Aucun produit trouvé pour cette recherche.</p>";
             return;
         }
 
+        // 4. SI ON A DES PRODUITS, ON LES AFFICHE
         data.products.forEach(p => {
-            const name = p.product_name_fr || p.product_name || "Inconnu";
+            const name = p.product_name_fr || p.product_name;
+            if (!name) return;
+
             const img = p.image_front_small_url || "https://via.placeholder.com/50";
             const score = p.nutriscore_grade || 'unknown';
-            
-            // Extraction complète des données
             const nutriments = {
                 calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
                 proteines: p.nutriments.proteins_100g || 0,
@@ -96,26 +95,26 @@ async function rechercherAliment() {
 
             const card = document.createElement('div');
             card.className = 'card';
-            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; text-align:left; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7; box-shadow: 0 4px 6px rgba(0,0,0,0.02);";
-            
+            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; text-align:left; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7;";
             card.innerHTML = `
-                <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/50'">
+                <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;">
                 <div style="flex:1;">
-                    <strong style="font-size:0.85rem; display:block; margin-bottom:2px;">${name}</strong>
-                    <div style="display:flex; align-items:center; gap:8px;">
+                    <strong style="font-size:0.85rem;">${name}</strong>
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                         <span style="background:${getNutriColor(score)}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:0.7rem; text-transform:uppercase;">${score}</span>
                         <span style="font-size:0.75rem; color:#718096;">${nutriments.calories} kcal</span>
                     </div>
                 </div>
                 <button type="button" onclick="ajouterAlimentLocal('${p.code}', '${name.replace(/'/g, "\\'")}', ${JSON.stringify(nutriments)})" 
-                        style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px; font-weight:bold; font-size:1.2rem;">+</button>
+                        style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px;">+</button>
             `;
             resultsDiv.appendChild(card);
         });
+
     } catch (e) {
-        resultsDiv.innerHTML = `<p style="color:red;">❌ Erreur réseau ou timeout.</p>`;
+        resultsDiv.innerHTML = "<p style='color:red; text-align:center;'>❌ Erreur de connexion au serveur.</p>";
     }
-}
+                              }
 
 // 5. STOCKAGE COMPLET
 function ajouterAlimentLocal(id, name, dataNutri) {
