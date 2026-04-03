@@ -6,76 +6,23 @@
     <title>Synutri</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    
     <style>
-        :root { 
-            --bg: #f8fbff; 
-            --prim: #38b2ac; 
-            --white: #fff; 
-            --text: #2d3748; 
-            --shadow: 0 10px 25px rgba(0,0,0,0.05); 
-        }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding-bottom: 100px; 
-            color: var(--text); 
-            overflow-x: hidden; 
-        }
-        
+        :root { --bg: #f8fbff; --prim: #38b2ac; --white: #fff; --text: #2d3748; --shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 100px; color: var(--text); overflow-x: hidden; }
         .container { padding: 20px; max-width: 500px; margin: 0 auto; }
         header { padding: 40px 0 10px; font-weight: 800; font-size: 1.6rem; color: #1a202c; }
-        
-        /* Carte du Graphique */
-        .card-main { 
-            background: var(--white); 
-            border-radius: 30px; 
-            padding: 25px; 
-            box-shadow: var(--shadow); 
-            text-align: center; 
-            margin-bottom: 30px; 
-        }
-
-        /* Sélecteur de nutriments (Chips) */
-        #nutri-selector { 
-            display: flex; 
-            gap: 8px; 
-            overflow-x: auto; 
-            padding: 5px 0 15px; 
-            scrollbar-width: none; 
-            -webkit-overflow-scrolling: touch; 
-        }
+        .card-main { background: var(--white); border-radius: 30px; padding: 25px; box-shadow: var(--shadow); text-align: center; margin-bottom: 30px; }
+        #nutri-selector { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 15px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         #nutri-selector::-webkit-scrollbar { display: none; }
-        
-        .chip { 
-            padding: 8px 18px; 
-            border-radius: 20px; 
-            border: 1px solid #edf2f7; 
-            background: white; 
-            color: #718096; 
-            font-size: 0.85rem; 
-            font-weight: 700; 
-            white-space: nowrap; 
-            cursor: pointer; 
-            transition: 0.3s all ease; 
-            flex-shrink: 0; 
-        }
-        /* La couleur active est gérée en JS pour correspondre aux anneaux */
+        .chip { padding: 8px 18px; border-radius: 20px; border: 1px solid #edf2f7; background: white; color: #718096; font-size: 0.85rem; font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.3s all ease; flex-shrink: 0; }
         .chip.active { color: white; border-color: rgba(0,0,0,0.05); }
-
-        /* Sidebar & Navigation */
-        #sidebar { position: fixed; top: 0; left: -290px; width: 260px; height: 100%; background: var(--white); z-index: 1002; transition: 0.3s; padding: 20px; }
+        #sidebar { position: fixed; top: 0; left: -290px; width: 260px; height: 100%; background: var(--white); z-index: 1002; transition: 0.3s; padding: 20px; box-shadow: 10px 0 30px rgba(0,0,0,0.05); }
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 1001; backdrop-filter: blur(3px); }
         .menu-btn { position: absolute; top: 20px; left: 20px; font-size: 1.8rem; color: var(--prim); z-index: 1000; cursor: pointer; }
-        
         .search-box { background: #edf2f7; border-radius: 18px; padding: 18px; border: none; width: 100%; box-sizing: border-box; outline: none; }
-        
         .navbar { position: fixed; bottom: 0; width: 100%; height: 85px; background: var(--white); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -10px 30px rgba(0,0,0,0.03); z-index: 1000; }
         .nav-item { text-align: center; color: #a0aec0; background: none; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
         .nav-item.active { color: var(--prim); }
-        .nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -84,13 +31,19 @@
     
     <div id="sidebar">
         <h2 style="color: var(--prim); margin-top: 40px;">Synutri</h2>
-        <p id="app-version" style="font-size: 0.8rem; color: #a0aec0;">--</p>
-        <button onclick="forceUpdate()" style="width:100%; padding:15px; border-radius:15px; border:none; background:#fed7d7; color:#9b2c2c; font-weight:700; margin-top: 20px;">🔄 Forcer MAJ</button>
+        <div style="background: #f7fafc; padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 0.75rem; color: #718096;">
+                App JS : <span id="app-version" style="font-weight: bold; color: var(--prim);">--</span>
+            </p>
+            <p style="margin: 5px 0 0; font-size: 0.75rem; color: #718096;">
+                SW Version : <span id="sw-version" style="font-weight: bold; color: var(--prim);">--</span>
+            </p>
+        </div>
+        <button onclick="forceUpdate()" style="width:100%; padding:15px; border-radius:15px; border:none; background:#fed7d7; color:#9b2c2c; font-weight:700;">🔄 Forcer MAJ</button>
     </div>
 
     <div id="dash-view" class="container">
         <header>Aujourd'hui</header>
-        
         <div id="nutri-selector">
             <button class="chip active" onclick="selectNutri(this, 'proteines', 'Prot.', '#38b2ac', 50)">Prot.</button>
             <button class="chip active" onclick="selectNutri(this, 'sel', 'Sel', '#ed8936', 5)">Sel</button>
@@ -99,13 +52,8 @@
             <button class="chip" onclick="selectNutri(this, 'glucides', 'Gluc.', '#805ad5', 250)">Gluc.</button>
             <button class="chip" onclick="selectNutri(this, 'fibres', 'Fibres', '#48bb78', 30)">Fibres</button>
         </div>
-
-        <div class="card-main">
-            <div id="pantry-chart"></div>
-        </div>
-        
-        <div id="ma-liste">
-            </div>
+        <div class="card-main"><div id="pantry-chart"></div></div>
+        <div id="ma-liste"></div>
     </div>
 
     <div id="search-section" class="container" style="display:none;">
@@ -118,12 +66,9 @@
     </div>
 
     <nav class="navbar">
-        <button onclick="showView('dash')" class="nav-item active" id="nav-dash">📊<br>Dashboard</button>
-        <button onclick="showView('search')" class="nav-item" id="nav-search">🔍<br>Scanner</button>
-        <button class="nav-item" style="opacity:0.3;">📅<br>Planning</button>
-        <button class="nav-item" style="opacity:0.3;">🛒<br>Courses</button>
+        <button onclick="showView('dash')" class="nav-item active" id="nav-dash">📊 Dashboard</button>
+        <button onclick="showView('search')" class="nav-item" id="nav-search">🔍 Scanner</button>
     </nav>
-
     <script src="app.js"></script>
 </body>
 </html>
