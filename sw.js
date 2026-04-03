@@ -23,8 +23,21 @@ self.addEventListener('activate', (e) => {
     )));
 });
 
-// Stratégie : On demande au réseau, SI ça échoue (pas de 4G), on prend le cache
+// STRATÉGIE DE NAVIGATION RÉSEAU
 self.addEventListener('fetch', (e) => {
+    // CONDITION CRUCIALE : Si on cherche un aliment, on ignore le cache
+    if (e.request.url.includes('openfoodfacts.org')) {
+        return e.respondWith(
+            fetch(e.request).catch(() => {
+                // En cas de panne totale de réseau
+                return new Response(JSON.stringify({ error: "no-network" }), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            })
+        );
+    }
+
+    // Pour les fichiers de l'application (HTML, JS, CSS)
     e.respondWith(
         fetch(e.request).catch(() => caches.match(e.request))
     );
