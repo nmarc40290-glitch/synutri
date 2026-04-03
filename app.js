@@ -1,7 +1,7 @@
 // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.2.45"; 
+const APP_JS_VERSION = "1.2.46"; 
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
@@ -23,7 +23,7 @@ request.onsuccess = (e) => {
 };
 
 // ==========================================
-// 2. NAVIGATION ET AFFICHAGE VERSION
+// 2. NAVIGATION ET INTERFACE
 // ==========================================
 if (document.getElementById('app-version')) {
     const vSrv = typeof VERSION !== 'undefined' ? VERSION : "?.?";
@@ -43,16 +43,13 @@ function showView(viewName) {
     document.getElementById('search-section').style.display = (viewName === 'search') ? 'block' : 'none';
     document.getElementById('nav-dash').classList.toggle('active', viewName === 'dash');
     document.getElementById('nav-search').classList.toggle('active', viewName === 'search');
-    
     if(viewName === 'dash') chargerAlimentsFavoris();
-    
-    const sb = document.getElementById('sidebar');
-    if (sb.style.left === "0px") toggleSidebar();
+    if (document.getElementById('sidebar').style.left === "0px") toggleSidebar();
 }
 
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        alert("Nettoyage du cache v" + APP_JS_VERSION + "... L'app va redémarrer."); 
+        alert("Mise à jour en cours..."); 
         const regs = await navigator.serviceWorker.getRegistrations();
         for (let r of regs) { await r.unregister(); }
         const keys = await caches.keys();
@@ -62,7 +59,7 @@ async function forceUpdate() {
 }
 
 // ==========================================
-// 3. OUTILS VISUELS (COULEURS NUTRI-SCORE)
+// 3. OUTILS VISUELS (COULEURS)
 // ==========================================
 function getNutriColor(grade) {
     const colors = { 
@@ -72,7 +69,7 @@ function getNutriColor(grade) {
 }
 
 // ==========================================
-// 4. RECHERCHE ALIMENTS
+// 4. RECHERCHE OPEN FOOD FACTS
 // ==========================================
 async function rechercherAliment() {
     const resultsDiv = document.getElementById('search-results');
@@ -81,21 +78,23 @@ async function rechercherAliment() {
     if (query.length < 3) return alert("3 lettres minimum");
     resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche...</p>";
     input.blur(); 
+
     try {
         const url = `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20`;
         const response = await fetch(url);
         const data = await response.json();
         resultsDiv.innerHTML = ""; 
+
         data.products.forEach(p => {
             const rawName = p.product_name_fr || p.product_name || "Inconnu";
             const safeName = rawName.replace(/'/g, " "); 
-            const img = p.image_front_small_url || "https://via.placeholder.com/50";
             const score = p.nutriscore_grade || 'unknown';
             const kcal = Math.round(p.nutriments['energy-kcal_100g'] || 0);
+
             const card = document.createElement('div');
             card.innerHTML = `
                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7;">
-                    <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;">
+                    <img src="${p.image_front_small_url || 'https://via.placeholder.com/50'}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;">
                     <div style="flex:1;">
                         <strong style="font-size:0.85rem;">${safeName}</strong>
                         <div style="display:flex; align-items:center; gap:8px;">
@@ -107,11 +106,11 @@ async function rechercherAliment() {
                 </div>`;
             resultsDiv.appendChild(card);
         });
-    } catch (e) { resultsDiv.innerHTML = "Erreur."; }
+    } catch (e) { resultsDiv.innerHTML = "Erreur de connexion."; }
 }
 
 // ==========================================
-// 5. STOCKAGE
+// 5. GESTION DU STOCKAGE
 // ==========================================
 function ajouterAlimentLocal(id, name, kcal, prot, sucre, sel, score) {
     const transaction = db.transaction(["aliments"], "readwrite");
@@ -121,19 +120,16 @@ function ajouterAlimentLocal(id, name, kcal, prot, sucre, sel, score) {
 }
 
 function supprimerAlimentLocal(id) {
-    if (!confirm("Supprimer ?")) return;
+    if (!confirm("Supprimer cet aliment ?")) return;
     db.transaction(["aliments"], "readwrite").objectStore("aliments").delete(id).onsuccess = () => chargerAlimentsFavoris();
 }
 
 // ==========================================
-// 6. DASHBOARD & ANIMATION (FORCE REDRAW)
+// 6. ANIMATION ET MISE À JOUR DU DASHBOARD
 // ==========================================
-let chart; 
-
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
     const couleurScore = getNutriColor(score);
-    
-    // Le 3ème paramètre 'true' force le graphique à se redessiner complètement
+
     chart.updateOptions({
         plotOptions: {
             radialBar: {
@@ -152,7 +148,7 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
             Math.round(Math.min((sel / 5) * 100, 100)),
             Math.round(Math.min((sucre / 50) * 100, 100))
         ]
-    }, false, true); 
+    }, false, true); // True force le redessin complet (couleurs + épaisseur)
 }
 
 function chargerAlimentsFavoris() {
@@ -167,7 +163,10 @@ function chargerAlimentsFavoris() {
                      style="margin-bottom:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; border-radius:15px; background:white; cursor:pointer; border:1px solid #f7fafc;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div style="width:12px; height:12px; border-radius:50%; background:${getNutriColor(a.score)}"></div>
-                        <span style="font-weight:600; font-size:0.85rem;">${a.nom}</span>
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-weight:600; font-size:0.85rem;">${a.nom}</span>
+                            <span style="font-size:0.7rem; color:#a0aec0;">${a.calories} kcal</span>
+                        </div>
                     </div>
                     <button onclick="event.stopPropagation(); supprimerAlimentLocal('${a.id}')" style="background:none; border:none; font-size:1.2rem;">🗑️</button>
                 </div>`;
@@ -177,7 +176,7 @@ function chargerAlimentsFavoris() {
 }
 
 // ==========================================
-// 7. INITIALISATION DU GRAPHIQUE
+// 7. INITIALISATION DU GRAPHIQUE (VERSION "BOLD")
 // ==========================================
 const options = {
     series: [0, 0, 0],
@@ -186,11 +185,11 @@ const options = {
     labels: ['Protéines', 'Sel', 'Sucres'],
     plotOptions: { 
         radialBar: { 
-            hollow: { size: '70%' }, 
-            track: { margin: 8 },
+            hollow: { size: '62%' }, // Un peu plus petit pour laisser de la place aux anneaux épais
+            track: { margin: 7 },
             dataLabels: {
                 show: true,
-                name: { show: true, fontSize: '70px', fontWeight: '900', offsetY: -15 },
+                name: { show: true, fontSize: '80px', fontWeight: '900', offsetY: -15 },
                 value: { show: true, fontSize: '24px', fontWeight: '600', color: '#718096', offsetY: 25 },
                 total: {
                     show: true,
@@ -201,8 +200,11 @@ const options = {
             }
         } 
     },
-    stroke: { lineCap: 'round' }
+    stroke: { 
+        lineCap: 'round',
+        width: 16 // Épaisseur doublée par rapport à l'original
+    }
 };
 
-chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
+let chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
 chart.render();
