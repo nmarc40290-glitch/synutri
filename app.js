@@ -1,10 +1,11 @@
-
+// ==========================================
+// 1. INITIALISATION DE LA BASE DE DONNÉES (IndexedDB)
+// ==========================================
 let db;
 const request = indexedDB.open("SynutriDB", 1);
 
 request.onupgradeneeded = (event) => {
     db = event.target.result;
-    // On crée un magasin d'objets "aliments" avec l'ID (ou code-barres) comme clé
     if (!db.objectStoreNames.contains("aliments")) {
         db.createObjectStore("aliments", { keyPath: "id" });
     }
@@ -13,26 +14,23 @@ request.onupgradeneeded = (event) => {
 request.onsuccess = (event) => {
     db = event.target.result;
     console.log("Base de données Synutri prête !");
-    chargerAlimentsFavoris(); // <-- AJOUTE CETTE LIGNE ICI
+    chargerAlimentsFavoris(); // Charge les données au démarrage
 };
 
-
-// Affiche la version depuis version.js
-document.getElementById('app-version').innerText = VERSION;
-
-// --- GRAPHIQUE ---
-const chartOptions = {
-    series: [65, 40, 20],
-    chart: { height: 350, type: 'radialBar' },
-    colors: ['#38b2ac', '#ed8936', '#4299e1'],
-    labels: ['Protéines', 'Sel', 'Sucres'],
-    plotOptions: {
-        radialBar: { hollow: { size: '45%' }, track: { margin: 10 } }
-    }
+request.onerror = (event) => {
+    console.error("Erreur IndexedDB :", event.target.errorCode);
 };
-new ApexCharts(document.querySelector("#pantry-chart"), chartOptions).render();
 
-// --- UI FUNCTIONS ---
+// ==========================================
+// 2. GESTION DE L'INTERFACE & VERSION
+// ==========================================
+
+// Affichage du numéro de version (provenant de version.js)
+if (typeof VERSION !== 'undefined') {
+    document.getElementById('app-version').innerText = VERSION;
+}
+
+// Menu latéral (Sidebar)
 function toggleSidebar() {
     const sb = document.getElementById('sidebar');
     const ov = document.getElementById('overlay');
@@ -41,83 +39,77 @@ function toggleSidebar() {
     ov.style.display = open ? "none" : "block";
 }
 
+// Navigation entre les vues (Dashboard / Recherche)
+function showView(viewName) {
+    const dash = document.getElementById('dash-view');
+    const search = document.getElementById('search-section');
+    const navDash = document.getElementById('nav-dash');
+    const navSearch = document.getElementById('nav-search');
+
+    if (viewName === 'dash') {
+        dash.style.display = 'block';
+        search.style.display = 'none';
+        navDash.classList.add('active');
+        navSearch.classList.remove('active');
+        chargerAlimentsFavoris(); // Rafraîchir la liste en revenant
+    } else if (viewName === 'search') {
+        dash.style.display = 'none';
+        search.style.display = 'block';
+        navDash.classList.remove('active');
+        navSearch.classList.add('active');
+    }
+    
+    // Fermer le sidebar si ouvert
+    const sb = document.getElementById('sidebar');
+    if (sb.style.left === "0px") toggleSidebar();
+}
+
+// Système de mise à jour forcée (Méthode radicale)
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        // 1. Désenregistrement de tous les Service Workers
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
             await registration.unregister();
         }
         
-        // 2. Nettoyage total des caches
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
 
-        alert("Mise à jour prête. Synutri va redémarrer sur la dernière version.");
+        alert("Synutri va redémarrer sur la dernière version.");
 
-        // 3. LA MÉTHODE RADICALE : Redirection vers une URL avec un paramètre unique
-        // On force le navigateur à oublier l'état actuel de la page.
         const cleanUrl = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
         window.location.href = cleanUrl;
     }
 }
 
+// ==========================================
+// 3. JALON 2 : RECHERCHE & API
+// ==========================================
 
-// --- PWA INSTALL ---
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('install-container').style.display = 'block';
-});
-
-document.getElementById('btn-install').addEventListener('click', async () => {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt = null;
-        document.getElementById('install-container').style.display = 'none';
-    }
-});
-
-// --- NAVIGATION ENTRE LES VUES ---
-function showView(viewName) {
-    const dash = document.querySelector('.container');
-    const search = document.getElementById('search-section');
-    const navItems = document.querySelectorAll('.nav-item');
-
-    // On cache tout
-    dash.style.display = 'none';
-    search.style.display = 'none';
-    navItems.forEach(item => item.classList.remove('active'));
-
-    // On affiche la vue demandée
-    if (viewName === 'dash') {
-        dash.style.display = 'block';
-        navItems[0].classList.add('active');
-    } else if (viewName === 'search') {
-        search.style.display = 'block';
-        navItems[2].classList.add('active'); // L'item "Scanner"
-    }
-}
-
-// --- JALON 2 : MOTEUR DE RECHERCHE ---
 async function rechercherAliment() {
     const query = document.getElementById('search-input').value;
     const resultsDiv = document.getElementById('search-results');
     
     if (query.length < 3) {
-        alert("Tape au moins 3 lettres pour chercher !");
+        alert("Tape au moins 3 lettres !");
         return;
     }
 
     resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche en cours...</p>";
 
     try {
-        // Appel à l'API OpenFoodFacts
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${query}&search_simple=1&action=process&json=1&page_size=10`;
-        const response = await fetch(url);
-        const data = await response.json();
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Synutri - App - Version ' + (typeof VERSION !== 'undefined' ? VERSION : '1.0')
+            }
+        });
 
+        if (!response.ok) throw new Error("Erreur serveur");
+
+        const data = await response.json();
         resultsDiv.innerHTML = ""; 
 
         if (!data.products || data.products.length === 0) {
@@ -132,7 +124,7 @@ async function rechercherAliment() {
 
             const card = document.createElement('div');
             card.className = 'card';
-            card.style = "display:flex; align-items:center; gap:15px; margin-bottom:10px; text-align:left; padding:12px;";
+            card.style = "display:flex; align-items:center; gap:15px; margin-bottom:10px; text-align:left; padding:12px; border:1px solid #eee; border-radius:15px;";
 
             card.innerHTML = `
                 <img src="${image}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
@@ -141,23 +133,21 @@ async function rechercherAliment() {
                     <span style="font-size:0.75rem; color:#718096;">${brand}</span>
                 </div>
                 <button onclick="ajouterAlimentLocal('${product.code}', '${name.replace(/'/g, "\\'")}')" 
-                        style="background:var(--prim); color:white; border:none; padding:10px; border-radius:10px; cursor:pointer; font-weight:bold;">
+                        style="background:var(--prim); color:white; border:none; padding:10px; border-radius:10px; cursor:pointer;">
                     +
                 </button>
             `;
             resultsDiv.appendChild(card);
         });
     } catch (error) {
-        resultsDiv.innerHTML = "<p>Erreur de connexion.</p>";
+        resultsDiv.innerHTML = `<p style="color:red; text-align:center;">❌ Erreur de connexion API.</p>`;
+        console.error("Erreur API:", error);
     }
 }
 
-// --- JALON 2 : STOCKAGE DANS LE TÉLÉPHONE ---
+// Sauvegarde dans IndexedDB
 function ajouterAlimentLocal(id, name) {
-    if (!db) {
-        alert("Base de données en cours d'initialisation...");
-        return;
-    }
+    if (!db) return;
 
     const transaction = db.transaction(["aliments"], "readwrite");
     const store = transaction.objectStore("aliments");
@@ -168,40 +158,39 @@ function ajouterAlimentLocal(id, name) {
         dateAjout: new Date().toISOString()
     };
 
-    const request = store.add(nouvelAliment);
+    const requestAdd = store.add(nouvelAliment);
 
-    request.onsuccess = () => {
+    requestAdd.onsuccess = () => {
         alert(`✅ ${name} ajouté !`);
-        showView('dash'); // On retourne voir le dashboard
-        chargerAlimentsFavoris(); // On rafraîchit la liste
+        showView('dash');
     };
 
-    request.onerror = () => {
-        alert("Cet aliment est déjà dans tes favoris.");
+    requestAdd.onerror = () => {
+        alert("Cet aliment est déjà enregistré.");
     };
 }
 
-// --- JALON 2 : AFFICHAGE SUR LE DASHBOARD ---
+// Affichage des favoris sur le Dashboard
 function chargerAlimentsFavoris() {
     if (!db) return;
 
     const transaction = db.transaction(["aliments"], "readonly");
     const store = transaction.objectStore("aliments");
-    const request = store.getAll();
+    const requestGet = store.getAll();
 
-    request.onsuccess = () => {
-        const aliments = request.result;
+    requestGet.onsuccess = () => {
+        const aliments = requestGet.result;
         const dashView = document.getElementById('dash-view');
         
         let htmlListe = '<h3 style="margin-top:25px; text-align:left;">Mes derniers ajouts</h3>';
         
         if (aliments.length === 0) {
-            htmlListe += '<p style="color:#a0aec0; font-size:0.9rem;">Ta liste est vide.</p>';
+            htmlListe += '<p style="color:#a0aec0; font-size:0.9rem;">Aucun aliment enregistré.</p>';
         } else {
-            // On affiche les 5 derniers ajoutés
-            aliments.reverse().slice(0, 5).forEach(alim => {
+            // Affichage des 5 derniers
+            [...aliments].reverse().slice(0, 5).forEach(alim => {
                 htmlListe += `
-                    <div class="card" style="margin-bottom:10px; padding:15px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card" style="margin-bottom:10px; padding:15px; text-align:left; display:flex; justify-content:space-between; align-items:center; border-radius:15px;">
                         <span style="font-weight:500;">${alim.nom}</span>
                         <span style="font-size:0.7rem; color:#cbd5e0;">${new Date(alim.dateAjout).toLocaleDateString()}</span>
                     </div>
@@ -209,7 +198,6 @@ function chargerAlimentsFavoris() {
             });
         }
         
-        // Nettoyage et injection
         const oldList = document.getElementById('ma-liste-aliments');
         if (oldList) oldList.remove();
         
@@ -219,4 +207,36 @@ function chargerAlimentsFavoris() {
         dashView.appendChild(listDiv);
     };
 }
+
+// ==========================================
+// 4. GRAPHIQUE (Dashboard)
+// ==========================================
+const chartOptions = {
+    series: [65, 40, 20],
+    chart: { height: 350, type: 'radialBar' },
+    colors: ['#38b2ac', '#ed8936', '#4299e1'],
+    labels: ['Protéines', 'Sel', 'Sucres'],
+    plotOptions: {
+        radialBar: { hollow: { size: '45%' }, track: { margin: 10 } }
+    }
+};
+new ApexCharts(document.querySelector("#pantry-chart"), chartOptions).render();
+
+// ==========================================
+// 5. INSTALLATION PWA
+// ==========================================
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-container').style.display = 'block';
+});
+
+document.getElementById('btn-install').addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+        document.getElementById('install-container').style.display = 'none';
+    }
+});
 
