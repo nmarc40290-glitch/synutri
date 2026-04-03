@@ -37,14 +37,13 @@ function showView(viewName) {
 
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let r of registrations) { await r.unregister(); }
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-        alert("Mise à jour prête ! Redémarrage...");
-        window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+        // ...
+        // Utilise la variable VERSION pour que le message soit toujours juste :
+        alert("Mise à jour " + VERSION + " prête ! Redémarrage..."); 
+        // ...
     }
 }
+
 
 // 3. FONCTION DE COULEUR NUTRI-SCORE
 function getNutriColor(grade) {
