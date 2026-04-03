@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -27,15 +27,21 @@
         /* Carte Dashboard */
         .card-main { background: var(--white); border-radius: 30px; padding: 25px; box-shadow: var(--shadow); text-align: center; margin-bottom: 30px; }
         
-        /* Style des Cartes Produits */
-        .item-card { background: var(--white); border-radius: 25px; padding: 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); border: none; transition: transform 0.2s; cursor: pointer; }
-        .item-card:active { transform: scale(0.98); }
-        
-        /* Recherche */
+        /* --- FORCE BRUTE NUTRI-SCORE XXL --- */
+        .apexcharts-datalabel-label {
+            font-size: 75px !important;
+            font-weight: 900 !important;
+            fill: currentColor !important;
+        }
+        .apexcharts-datalabel-value {
+            font-size: 24px !important;
+            font-weight: 600 !important;
+        }
+        /* ---------------------------------- */
+
         .search-box { background: #edf2f7; border-radius: 18px; padding: 18px; border: none; width: 100%; font-size: 1rem; margin-bottom: 20px; box-sizing: border-box; outline: none; }
         .btn-plus { background: var(--prim); color: white; border: none; width: 42px; height: 42px; border-radius: 14px; font-size: 1.3rem; font-weight: bold; box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3); display: flex; align-items: center; justify-content: center; }
 
-        /* Barre de Navigation */
         .navbar { position: fixed; bottom: 0; width: 100%; height: 85px; background: var(--white); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -10px 30px rgba(0,0,0,0.03); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { text-align: center; color: #a0aec0; text-decoration: none; font-size: 0.75rem; font-weight: 600; flex: 1; border: none; background: none; }
         .nav-item.active { color: var(--prim); }
@@ -63,7 +69,6 @@
                 <span><i style="color:#4299e1; font-style: normal;">●</i> Sucres</span>
             </div>
         </div>
-        <h3 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 15px;">Derniers ajouts</h3>
         <div id="ma-liste"></div>
     </div>
 
