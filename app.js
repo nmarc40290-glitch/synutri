@@ -41,13 +41,20 @@ function toggleSidebar() {
 }
 
 function forceUpdate() {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-        for(let r of regs) r.unregister();
-        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
-        alert("Synutri va redémarrer pour la mise à jour.");
-        window.location.reload(true);
-    });
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+            for(let r of regs) r.unregister();
+            caches.keys().then(keys => {
+                return Promise.all(keys.map(k => caches.delete(k)));
+            }).then(() => {
+                alert("Mise à jour vers la version " + VERSION + " en cours...");
+                // Le "true" force le rechargement depuis le serveur et non le cache
+                window.location.reload(true); 
+            });
+        });
+    }
 }
+
 
 // --- PWA INSTALL ---
 let deferredPrompt;
