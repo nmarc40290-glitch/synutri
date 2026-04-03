@@ -1,7 +1,7 @@
 // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.2.44"; 
+const APP_JS_VERSION = "1.2.45"; 
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
@@ -66,11 +66,7 @@ async function forceUpdate() {
 // ==========================================
 function getNutriColor(grade) {
     const colors = { 
-        'a': '#038141', // Vert foncé
-        'b': '#85BB2F', // Vert clair
-        'c': '#FECB02', // Jaune
-        'd': '#EE8100', // Orange
-        'e': '#E63E11'  // Rouge
+        'a': '#038141', 'b': '#85BB2F', 'c': '#FECB02', 'd': '#EE8100', 'e': '#E63E11' 
     };
     return colors[grade?.toLowerCase()] || '#cbd5e0';
 }
@@ -82,28 +78,20 @@ async function rechercherAliment() {
     const resultsDiv = document.getElementById('search-results');
     const input = document.getElementById('search-input');
     const query = input.value.trim();
-    
     if (query.length < 3) return alert("3 lettres minimum");
-
-    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche en cours...</p>";
+    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche...</p>";
     input.blur(); 
-
     try {
         const url = `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20`;
         const response = await fetch(url);
         const data = await response.json();
         resultsDiv.innerHTML = ""; 
-
         data.products.forEach(p => {
             const rawName = p.product_name_fr || p.product_name || "Inconnu";
             const safeName = rawName.replace(/'/g, " "); 
             const img = p.image_front_small_url || "https://via.placeholder.com/50";
             const score = p.nutriscore_grade || 'unknown';
             const kcal = Math.round(p.nutriments['energy-kcal_100g'] || 0);
-            const prot = p.nutriments.proteins_100g || 0;
-            const sucre = p.nutriments.sugars_100g || 0;
-            const sel = p.nutriments.salt_100g || 0;
-
             const card = document.createElement('div');
             card.innerHTML = `
                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7;">
@@ -115,41 +103,37 @@ async function rechercherAliment() {
                             <span style="font-size:0.75rem; color:#718096;">${kcal} kcal</span>
                         </div>
                     </div>
-                    <button onclick="ajouterAlimentLocal('${p.code}', '${safeName}', ${kcal}, ${prot}, ${sucre}, ${sel}, '${score}')" style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px;">+</button>
+                    <button onclick="ajouterAlimentLocal('${p.code}', '${safeName}', ${kcal}, ${p.nutriments.proteins_100g || 0}, ${p.nutriments.sugars_100g || 0}, ${p.nutriments.salt_100g || 0}, '${score}')" style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px;">+</button>
                 </div>`;
             resultsDiv.appendChild(card);
         });
-    } catch (e) {
-        resultsDiv.innerHTML = "<p style='color:red; text-align:center;'>❌ Erreur.</p>";
-    }
+    } catch (e) { resultsDiv.innerHTML = "Erreur."; }
 }
 
 // ==========================================
-// 5. STOCKAGE (IndexedDB)
+// 5. STOCKAGE
 // ==========================================
 function ajouterAlimentLocal(id, name, kcal, prot, sucre, sel, score) {
     const transaction = db.transaction(["aliments"], "readwrite");
     const store = transaction.objectStore("aliments");
     store.put({ id, nom: name, calories: kcal, proteines: prot, sucres: sucre, sel: sel, score: score, dateAjout: new Date().toISOString() });
-    transaction.oncomplete = () => { 
-        alert(`✅ Ajouté !`); 
-        showView('dash'); 
-    };
+    transaction.oncomplete = () => { alert(`✅ Ajouté !`); showView('dash'); };
 }
 
 function supprimerAlimentLocal(id) {
-    if (!confirm("Supprimer cet aliment ?")) return;
+    if (!confirm("Supprimer ?")) return;
     db.transaction(["aliments"], "readwrite").objectStore("aliments").delete(id).onsuccess = () => chargerAlimentsFavoris();
 }
 
 // ==========================================
-// 6. DASHBOARD & ANIMATION (COULEUR DYNAMIQUE)
+// 6. DASHBOARD & ANIMATION (FORCE REDRAW)
 // ==========================================
 let chart; 
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
-    const couleurScore = getNutriColor(score); // On récupère la couleur du grade
-
+    const couleurScore = getNutriColor(score);
+    
+    // Le 3ème paramètre 'true' force le graphique à se redessiner complètement
     chart.updateOptions({
         plotOptions: {
             radialBar: {
@@ -157,7 +141,7 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
                     total: {
                         show: true,
                         label: score.toUpperCase(),
-                        color: couleurScore, // On applique la couleur ici
+                        color: couleurScore, 
                         formatter: () => kcal + ' kcal'
                     }
                 }
@@ -168,7 +152,7 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
             Math.round(Math.min((sel / 5) * 100, 100)),
             Math.round(Math.min((sucre / 50) * 100, 100))
         ]
-    });
+    }, false, true); 
 }
 
 function chargerAlimentsFavoris() {
@@ -177,7 +161,6 @@ function chargerAlimentsFavoris() {
     store.getAll().onsuccess = (e) => {
         const alims = e.target.result;
         let html = '<h3 style="margin-top:25px; font-size:1.1rem;">Derniers ajouts</h3>';
-        
         [...alims].reverse().slice(0, 8).forEach(a => {
             html += `
                 <div onclick="animerDisque('', ${a.calories}, ${a.proteines}, ${a.sucres}, ${a.sel}, '${a.score}')"
@@ -194,7 +177,7 @@ function chargerAlimentsFavoris() {
 }
 
 // ==========================================
-// 7. INITIALISATION DU GRAPHIQUE (XXL)
+// 7. INITIALISATION DU GRAPHIQUE
 // ==========================================
 const options = {
     series: [0, 0, 0],
@@ -203,23 +186,12 @@ const options = {
     labels: ['Protéines', 'Sel', 'Sucres'],
     plotOptions: { 
         radialBar: { 
-            hollow: { size: '70%' }, // Donne l'espace nécessaire pour la lettre géante
+            hollow: { size: '70%' }, 
             track: { margin: 8 },
             dataLabels: {
                 show: true,
-                name: { 
-                    show: true,
-                    fontSize: '64px', // Taille XXL
-                    fontWeight: '900', 
-                    offsetY: -15 
-                },
-                value: { 
-                    show: true,
-                    fontSize: '24px', 
-                    fontWeight: '600', 
-                    color: '#718096', 
-                    offsetY: 25         
-                },
+                name: { show: true, fontSize: '70px', fontWeight: '900', offsetY: -15 },
+                value: { show: true, fontSize: '24px', fontWeight: '600', color: '#718096', offsetY: 25 },
                 total: {
                     show: true,
                     label: '-',
