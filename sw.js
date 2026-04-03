@@ -1,6 +1,7 @@
 importScripts('version.js');
-
 const CACHE_NAME = `synutri-v${VERSION}`;
+
+// On n'enregistre PAS le sw.js lui-même dans le cache !
 const ASSETS = [
     './',
     './index.html',
@@ -12,19 +13,26 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-    // Force le nouveau SW à devenir actif tout de suite
-    self.skipWaiting(); 
-    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
+    self.skipWaiting(); // Prend la place immédiatement
+    e.waitUntil(
+        caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))
+    );
 });
 
 self.addEventListener('activate', (e) => {
-    // Permet au SW de prendre le contrôle des pages immédiatement
-    e.waitUntil(clients.claim()); 
-    e.waitUntil(caches.keys().then(keys => Promise.all(
-        keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
-    )));
+    e.waitUntil(clients.claim()); // Prend le contrôle des pages ouvertes
+    e.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.map(k => {
+                if (k !== CACHE_NAME) return caches.delete(k);
+            })
+        ))
+    );
 });
 
+// Stratégie : Réseau d'abord, sinon Cache
 self.addEventListener('fetch', (e) => {
-    e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+    e.respondWith(
+        fetch(e.request).catch(() => caches.match(e.request))
+    );
 });
