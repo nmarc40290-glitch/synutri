@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Synutri</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="version.js"></script>
+    <style>
+        :root { --bg: #f7fafc; --prim: #38b2ac; --sec: #ed8936; --acc: #4299e1; --white: #fff; --text: #2d3748; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 90px; color: var(--text); overflow-x: hidden; }
+        #sidebar { position: fixed; top: 0; left: -290px; width: 260px; height: 100%; background: var(--white); box-shadow: 4px 0 20px rgba(0,0,0,0.1); z-index: 1002; transition: 0.3s ease; padding: 20px; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001; }
+        .menu-btn { position: fixed; top: 20px; left: 20px; font-size: 1.8rem; cursor: pointer; z-index: 1000; color: var(--prim); }
+        .container { width: 90%; max-width: 450px; margin: 80px auto 20px; }
+        .card { background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); text-align: center; }
+        .btn { width: 100%; border: none; padding: 15px; border-radius: 14px; cursor: pointer; font-weight: 700; margin-bottom: 12px; font-size: 1rem; }
+        .btn-update { background: #feb2b2; color: #9b2c2c; }
+        .btn-install { background: var(--prim); color: white; }
+        .navbar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { text-align: center; color: #cbd5e0; text-decoration: none; font-size: 0.7rem; font-weight: bold; }
+        .nav-item.active { color: var(--prim); }
+        .nav-icon { font-size: 1.5rem; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+    <div id="overlay" onclick="toggleSidebar()"></div>
+
+    <div id="sidebar">
+        <h2 style="color: var(--prim); margin-top: 40px;">Synutri</h2>
+        <p>Version: <span id="app-version" style="font-weight: bold; color: var(--sec);"></span></p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <div id="install-container" style="display:none;">
+            <button id="btn-install" class="btn btn-install">📲 Installer l'App</button>
+        </div>
+        <button class="btn btn-update" onclick="forceUpdate()">🔄 Forcer MAJ</button>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3 style="margin-top:0;">Mon Dashboard</h3>
+            <div id="pantry-chart"></div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <a href="#" class="nav-item active"><div class="nav-icon">📊</div>Dashboard</a>
+        <a href="#" class="nav-item"><div class="nav-icon">📅</div>Planning</a>
+        <a href="#" class="nav-item"><div class="nav-icon">📷</div>Scanner</a>
+        <a href="#" class="nav-item"><div class="nav-icon">🛒</div>Courses</a>
+    </nav>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
