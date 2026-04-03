@@ -1,4 +1,10 @@
- // ==========================================
+// ==========================================
+// 0. CONTRÔLE DE VERSION INTERNE
+// ==========================================
+const APP_JS_VERSION = "1.2.36"; // À changer manuellement à chaque modif
+console.log("App.js chargé : v" + APP_JS_VERSION);
+
+// ==========================================
 // 1. BASE DE DONNÉES (IndexedDB)
 // ==========================================
 let db;
@@ -17,10 +23,11 @@ request.onsuccess = (e) => {
 };
 
 // ==========================================
-// 2. NAVIGATION ET VERSION
+// 2. NAVIGATION ET AFFICHAGE VERSION
 // ==========================================
-if (typeof VERSION !== 'undefined') {
-    document.getElementById('app-version').innerText = VERSION;
+if (document.getElementById('app-version')) {
+    const vSrv = typeof VERSION !== 'undefined' ? VERSION : "?.?";
+    document.getElementById('app-version').innerText = `V:${vSrv} (JS:${APP_JS_VERSION})`;
 }
 
 function toggleSidebar() {
@@ -45,13 +52,12 @@ function showView(viewName) {
 
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        const v = typeof VERSION !== 'undefined' ? VERSION : "1.2.12";
-        alert("Mise à jour " + v + " prête ! Redémarrage..."); 
+        alert("Nettoyage du cache v" + APP_JS_VERSION + "... L'app va redémarrer."); 
         const regs = await navigator.serviceWorker.getRegistrations();
         for (let r of regs) { await r.unregister(); }
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
-        window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+        window.location.href = window.location.origin + window.location.pathname + '?rev=' + Date.now();
     }
 }
 
@@ -73,7 +79,7 @@ async function rechercherAliment() {
     
     if (query.length < 3) return alert("3 lettres minimum");
 
-    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Analyse de '" + query + "'...</p>";
+    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche en cours...</p>";
     input.blur(); 
 
     try {
@@ -99,7 +105,7 @@ async function rechercherAliment() {
 
             const card = document.createElement('div');
             card.className = 'card';
-            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; text-align:left; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7;";
+            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7;";
             
             card.innerHTML = `
                 <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/50'">
@@ -130,41 +136,31 @@ function ajouterAlimentLocal(id, name, kcal, prot, sucre, sel, score) {
     if (!db) return alert("Base de données non prête.");
     const transaction = db.transaction(["aliments"], "readwrite");
     const store = transaction.objectStore("aliments");
-
     const item = { id, nom: name, calories: kcal, proteines: prot, sucres: sucre, sel: sel, score: score, dateAjout: new Date().toISOString() };
     
     const req = store.put(item); 
     req.onsuccess = () => { 
-        alert(`✅ ${name} enregistré/mis à jour !`); 
+        alert(`✅ ${name} ajouté !`); 
         showView('dash'); 
     };
-    req.onerror = () => alert("Erreur lors de l'enregistrement.");
 }
 
 function supprimerAlimentLocal(id) {
     if (!confirm("Supprimer cet aliment ?")) return;
     const transaction = db.transaction(["aliments"], "readwrite");
     const store = transaction.objectStore("aliments");
-    const req = store.delete(id);
-    req.onsuccess = () => {
-        alert("🗑️ Aliment retiré.");
-        chargerAlimentsFavoris();
-    };
+    store.delete(id).onsuccess = () => chargerAlimentsFavoris();
 }
 
 // ==========================================
-// 6. DASHBOARD & ANIMATION (CORRIGÉ)
+// 6. DASHBOARD & ANIMATION (POLICES XXL)
 // ==========================================
-let chart; // Variable globale pour le graphique
+let chart; 
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
-    // Calcul des pourcentages
     const pProt = Math.min((prot / 50) * 100, 100);
     const pSel = Math.min((sel / 5) * 100, 100);
     const pSucre = Math.min((sucre / 50) * 100, 100);
-
-    // Récupère la couleur exacte du score (ex: vert pour 'a', rouge pour 'e')
-    const couleurScore = getNutriColor(score);
 
     chart.updateOptions({
         plotOptions: {
@@ -172,11 +168,8 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
                 dataLabels: {
                     total: {
                         show: true,
-                        // Le score (grosse lettre)
-                        label: score.toUpperCase(), 
-                        // APPLIQUE ICI LA COULEUR DU SCORE À LA GROSSE LETTRE
-                        color: couleurScore, 
-                        // Le nombre de calories (petite ligne en dessous)
+                        label: score.toUpperCase(),
+                        color: getNutriColor(score), // Lettre colorée
                         formatter: function() { 
                             return kcal + ' kcal'; 
                         }
@@ -188,33 +181,30 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
     });
 }
 
-
 function chargerAlimentsFavoris() {
     if (!db) return;
     const store = db.transaction(["aliments"], "readonly").objectStore("aliments");
     store.getAll().onsuccess = (e) => {
         const alims = e.target.result;
         const dash = document.getElementById('dash-view');
-        let html = '<h3 style="margin-top:25px; text-align:left; font-size:1rem;">Derniers ajouts</h3>';
+        let html = '<h3 style="margin-top:25px; font-size:1rem;">Derniers ajouts</h3>';
         
         if (alims.length === 0) {
-            html += '<p style="font-size:0.8rem; color:#a0aec0;">Aucun aliment enregistré.</p>';
+            html += '<p style="color:#a0aec0;">Aucun aliment enregistré.</p>';
         } else {
             [...alims].reverse().slice(0, 8).forEach(a => {
-                const safeName = a.nom.replace(/'/g, "\\'");
+                const sn = a.nom.replace(/'/g, "\\'");
                 html += `
-                    <div class="card" 
-                         onclick="animerDisque('${safeName}', ${a.calories}, ${a.proteines}, ${a.sucres}, ${a.sel}, '${a.score}')"
-                         style="margin-bottom:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; border-radius:15px; border:1px solid #f7fafc; background:white; cursor:pointer;">
+                    <div class="card" onclick="animerDisque('${sn}', ${a.calories}, ${a.proteines}, ${a.sucres}, ${a.sel}, '${a.score}')"
+                         style="margin-bottom:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; border-radius:15px; background:white; cursor:pointer; border:1px solid #f7fafc;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="width:10px; height:10px; border-radius:50%; background:${getNutriColor(a.score)}"></div>
+                            <div style="width:12px; height:12px; border-radius:50%; background:${getNutriColor(a.score)}"></div>
                             <div style="display:flex; flex-direction:column;">
-                                <span style="font-weight:500; font-size:0.9rem;">${a.nom}</span>
-                                <span style="font-size:0.65rem; color:#cbd5e0;">${a.calories} kcal</span>
+                                <span style="font-weight:600; font-size:0.85rem;">${a.nom}</span>
+                                <span style="font-size:0.7rem; color:#cbd5e0;">${a.calories} kcal</span>
                             </div>
                         </div>
-                        <button onclick="event.stopPropagation(); supprimerAlimentLocal('${a.id}')" 
-                                style="background:none; border:none; color:#e53e3e; font-size:1.1rem; padding:5px;">🗑️</button>
+                        <button onclick="event.stopPropagation(); supprimerAlimentLocal('${a.id}')" style="background:none; border:none;">🗑️</button>
                     </div>`;
             });
         }
@@ -226,37 +216,32 @@ function chargerAlimentsFavoris() {
 }
 
 // ==========================================
-// 7. INITIALISATION DU GRAPHIQUE (CORRIGÉ)
+// 7. INITIALISATION DU GRAPHIQUE
 // ==========================================
 const options = {
-    series: [0, 0, 0], // Initialement à vide
-    chart: { height: 350, type: 'radialBar' },
-    colors: ['#38b2ac', '#ed8936', '#4299e1'], // Protéines, Sel, Sucres
+    series: [0, 0, 0],
+    chart: { height: 380, type: 'radialBar' },
+    colors: ['#38b2ac', '#ed8936', '#4299e1'], 
     labels: ['Protéines', 'Sel', 'Sucres'],
     plotOptions: { 
         radialBar: { 
-            hollow: { size: '55%' }, 
+            hollow: { size: '60%' }, 
             track: { margin: 10 },
             dataLabels: {
-                // Style spécifique pour la grosse lettre du Nutri-Score (dans 'total')
                 name: { 
-                    fontSize: '48px',   // REND LA LETTRE ÉNORME (ex: 48px)
-                    fontWeight: '800', // TRÈS GRAS
-                    color: '#a0aec0',  // Couleur de base par défaut (sera surchargée par l'animation)
-                    offsetY: -5        // Légère compensation verticale pour l'espace
+                    fontSize: '52px',   // TAILLE MASSIVE DU SCORE
+                    fontWeight: '800', 
+                    offsetY: -10 
                 },
-                // Style pour les calories (petite ligne en dessous)
                 value: { 
-                    fontSize: '18px',  // Taille modérée pour les kcal
+                    fontSize: '20px',   // TAILLE CALORIES
                     fontWeight: '600', 
-                    color: '#718096',  // Gris plus clair
-                    offsetY: 20        // Espace suffisant pour descendre sous le score
+                    color: '#718096', 
+                    offsetY: 25         
                 },
                 total: {
                     show: true,
-                    // Ce champ récupère le style de 'name'
                     label: 'SCORE',
-                    // Ce champ récupère le style de 'value'
                     formatter: function() { return "-"; }
                 }
             }
@@ -266,4 +251,3 @@ const options = {
 
 chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
 chart.render();
-
