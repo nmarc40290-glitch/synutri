@@ -37,13 +37,14 @@ function showView(viewName) {
 
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        // ...
-        // Utilise la variable VERSION pour que le message soit toujours juste :
-        alert("Mise à jour " + VERSION + " prête ! Redémarrage..."); 
-        // ...
+        alert("Mise à jour " + (typeof VERSION !== 'undefined' ? VERSION : "en cours") + " prête ! Redémarrage..."); 
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let r of regs) { await r.unregister(); }
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+        window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
     }
 }
-
 
 // 3. FONCTION DE COULEUR NUTRI-SCORE
 function getNutriColor(grade) {
@@ -51,7 +52,7 @@ function getNutriColor(grade) {
     return colors[grade?.toLowerCase()] || '#cbd5e0';
 }
 
-// 4. RECHERCHE ALIMENTS (AVEC NUTRIMENTS ET NUTRI-SCORE)
+// 4. RECHERCHE ALIMENTS
 async function rechercherAliment() {
     const resultsDiv = document.getElementById('search-results');
     const input = document.getElementById('search-input');
@@ -59,7 +60,6 @@ async function rechercherAliment() {
     
     if (query.length < 3) return alert("3 lettres minimum");
 
-    // 1. ON VIDE L'ÉCRAN ET ON AFFICHE LE CHARGEMENT (RIEN D'AUTRE)
     resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Analyse de '" + query + "'...</p>";
     input.blur(); 
 
@@ -68,16 +68,13 @@ async function rechercherAliment() {
         const response = await fetch(url);
         const data = await response.json();
 
-        // 2. ON NE VIDE L'ÉCRAN POUR METTRE LES RÉSULTATS QU'ICI
         resultsDiv.innerHTML = ""; 
 
-        // 3. ON VÉRIFIE SI C'EST VIDE *APRÈS* AVOIR REÇU LES DONNÉES
         if (!data.products || data.products.length === 0) {
-            resultsDiv.innerHTML = "<p style='text-align:center; padding:20px;'>Aucun produit trouvé pour cette recherche.</p>";
+            resultsDiv.innerHTML = "<p style='text-align:center; padding:20px;'>Aucun produit trouvé.</p>";
             return;
         }
 
-        // 4. SI ON A DES PRODUITS, ON LES AFFICHE
         data.products.forEach(p => {
             const name = p.product_name_fr || p.product_name;
             if (!name) return;
@@ -94,9 +91,9 @@ async function rechercherAliment() {
 
             const card = document.createElement('div');
             card.className = 'card';
-            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; text-align:left; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7;";
+            card.style = "display:flex; align-items:center; gap:12px; margin-bottom:12px; text-align:left; padding:12px; border-radius:18px; background:white; border:1px solid #edf2f7; box-shadow: 0 4px 6px rgba(0,0,0,0.02);";
             card.innerHTML = `
-                <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;">
+                <img src="${img}" style="width:55px; height:55px; border-radius:10px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/50'">
                 <div style="flex:1;">
                     <strong style="font-size:0.85rem;">${name}</strong>
                     <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
@@ -105,18 +102,18 @@ async function rechercherAliment() {
                     </div>
                 </div>
                 <button type="button" onclick="ajouterAlimentLocal('${p.code}', '${name.replace(/'/g, "\\'")}', ${JSON.stringify(nutriments)})" 
-                        style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px;">+</button>
+                        style="background:var(--prim); color:white; border:none; width:35px; height:35px; border-radius:10px; font-weight:bold; font-size:1.2rem;">+</button>
             `;
             resultsDiv.appendChild(card);
         });
-
     } catch (e) {
-        resultsDiv.innerHTML = "<p style='color:red; text-align:center;'>❌ Erreur de connexion au serveur.</p>";
+        resultsDiv.innerHTML = "<p style='color:red; text-align:center;'>❌ Erreur de connexion.</p>";
     }
-                              }
+}
 
 // 5. STOCKAGE COMPLET
 function ajouterAlimentLocal(id, name, dataNutri) {
+    if (!db) return;
     const transaction = db.transaction(["aliments"], "readwrite");
     const store = transaction.objectStore("aliments");
     const item = { id, nom: name, dateAjout: new Date().toISOString(), ...dataNutri };
@@ -129,7 +126,7 @@ function ajouterAlimentLocal(id, name, dataNutri) {
     req.onerror = () => alert("Déjà dans tes favoris.");
 }
 
-// 6. DASHBOARD (AFFICHAGE DU NUTRI-SCORE DANS LA LISTE)
+// 6. DASHBOARD
 function chargerAlimentsFavoris() {
     if (!db) return;
     const store = db.transaction(["aliments"], "readonly").objectStore("aliments");
@@ -151,13 +148,14 @@ function chargerAlimentsFavoris() {
                     </div>`;
             });
         }
-        if (document.getElementById('ma-liste')) document.getElementById('ma-liste').remove();
+        const old = document.getElementById('ma-liste');
+        if (old) old.remove();
         const div = document.createElement('div');
         div.id = 'ma-liste'; div.innerHTML = html; dash.appendChild(div);
     };
 }
 
-// 7. GRAPHIQUE (DASHBOARD)
+// 7. GRAPHIQUE
 new ApexCharts(document.querySelector("#pantry-chart"), {
     series: [65, 40, 20], chart: { height: 350, type: 'radialBar' },
     colors: ['#38b2ac', '#ed8936', '#4299e1'], labels: ['Prot.', 'Sel', 'Sucres'],
