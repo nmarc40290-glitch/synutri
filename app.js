@@ -153,14 +153,18 @@ function supprimerAlimentLocal(id) {
 }
 
 // ==========================================
-// 6. DASHBOARD & ANIMATION
+// 6. DASHBOARD & ANIMATION (CORRIGÉ)
 // ==========================================
-let chart; 
+let chart; // Variable globale pour le graphique
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
+    // Calcul des pourcentages
     const pProt = Math.min((prot / 50) * 100, 100);
     const pSel = Math.min((sel / 5) * 100, 100);
     const pSucre = Math.min((sucre / 50) * 100, 100);
+
+    // Récupère la couleur exacte du score (ex: vert pour 'a', rouge pour 'e')
+    const couleurScore = getNutriColor(score);
 
     chart.updateOptions({
         plotOptions: {
@@ -168,11 +172,14 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
                 dataLabels: {
                     total: {
                         show: true,
-                        label: score.toUpperCase(),
+                        // Le score (grosse lettre)
+                        label: score.toUpperCase(), 
+                        // APPLIQUE ICI LA COULEUR DU SCORE À LA GROSSE LETTRE
+                        color: couleurScore, 
+                        // Le nombre de calories (petite ligne en dessous)
                         formatter: function() { 
                             return kcal + ' kcal'; 
-                        },
-                        color: getNutriColor(score) // Applique la couleur au texte central
+                        }
                     }
                 }
             }
@@ -180,6 +187,7 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
         series: [Math.round(pProt), Math.round(pSel), Math.round(pSucre)]
     });
 }
+
 
 function chargerAlimentsFavoris() {
     if (!db) return;
@@ -218,33 +226,37 @@ function chargerAlimentsFavoris() {
 }
 
 // ==========================================
-// 7. INITIALISATION DU GRAPHIQUE
+// 7. INITIALISATION DU GRAPHIQUE (CORRIGÉ)
 // ==========================================
 const options = {
-    series: [0, 0, 0],
+    series: [0, 0, 0], // Initialement à vide
     chart: { height: 350, type: 'radialBar' },
-    colors: ['#38b2ac', '#ed8936', '#4299e1'], 
+    colors: ['#38b2ac', '#ed8936', '#4299e1'], // Protéines, Sel, Sucres
     labels: ['Protéines', 'Sel', 'Sucres'],
     plotOptions: { 
         radialBar: { 
             hollow: { size: '55%' }, 
             track: { margin: 10 },
             dataLabels: {
+                // Style spécifique pour la grosse lettre du Nutri-Score (dans 'total')
                 name: { 
-                    fontSize: '32px',   // Grosse lettre Nutri-Score
-                    fontWeight: '800', 
-                    color: '#2d3748', 
-                    offsetY: -10 
+                    fontSize: '48px',   // REND LA LETTRE ÉNORME (ex: 48px)
+                    fontWeight: '800', // TRÈS GRAS
+                    color: '#a0aec0',  // Couleur de base par défaut (sera surchargée par l'animation)
+                    offsetY: -5        // Légère compensation verticale pour l'espace
                 },
+                // Style pour les calories (petite ligne en dessous)
                 value: { 
-                    fontSize: '18px',   // Calories
+                    fontSize: '18px',  // Taille modérée pour les kcal
                     fontWeight: '600', 
-                    color: '#718096', 
-                    offsetY: 15         
+                    color: '#718096',  // Gris plus clair
+                    offsetY: 20        // Espace suffisant pour descendre sous le score
                 },
                 total: {
                     show: true,
+                    // Ce champ récupère le style de 'name'
                     label: 'SCORE',
+                    // Ce champ récupère le style de 'value'
                     formatter: function() { return "-"; }
                 }
             }
@@ -254,3 +266,4 @@ const options = {
 
 chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
 chart.render();
+
