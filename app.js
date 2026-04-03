@@ -42,25 +42,24 @@ function toggleSidebar() {
 
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
+        // 1. Désenregistrement de tous les Service Workers
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
             await registration.unregister();
         }
         
+        // 2. Nettoyage total des caches
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
 
-        // On crée une URL de redirection forcée
-        const newUrl = new URL(window.location.origin + window.location.pathname);
-        newUrl.searchParams.set('reload', Date.now()); 
-        
-        alert("Mise à jour v" + VERSION + " en cours...");
-        
-        // On remplace l'URL actuelle, ce qui force le navigateur à tout re-télécharger
-        window.location.replace(newUrl.href);
+        alert("Mise à jour prête. Synutri va redémarrer proprement.");
+
+        // 3. LA MÉTHODE RADICALE : Redirection vers une URL avec un paramètre unique
+        // On force le navigateur à oublier l'état actuel de la page.
+        const cleanUrl = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+        window.location.href = cleanUrl;
     }
 }
-
 
 
 // --- PWA INSTALL ---
