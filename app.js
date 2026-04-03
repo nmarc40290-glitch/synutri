@@ -41,7 +41,7 @@ async function forceUpdate() {
         for (let r of registrations) { await r.unregister(); }
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
-        alert("Mise à jour 1.4.0 prête ! Redémarrage...");
+        alert("Mise à jour prête ! Redémarrage...");
         window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
     }
 }
