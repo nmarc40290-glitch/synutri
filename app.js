@@ -13,6 +13,7 @@ request.onupgradeneeded = (event) => {
 request.onsuccess = (event) => {
     db = event.target.result;
     console.log("Base de données Synutri prête !");
+    chargerAlimentsFavoris(); // <-- AJOUTE CETTE LIGNE ICI
 };
 
 
@@ -99,4 +100,123 @@ function showView(viewName) {
     }
 }
 
-// Modifie tes liens dans le HTML pour appeler showView('dash') ou showView('search')
+// --- JALON 2 : MOTEUR DE RECHERCHE ---
+async function rechercherAliment() {
+    const query = document.getElementById('search-input').value;
+    const resultsDiv = document.getElementById('search-results');
+    
+    if (query.length < 3) {
+        alert("Tape au moins 3 lettres pour chercher !");
+        return;
+    }
+
+    resultsDiv.innerHTML = "<p style='text-align:center;'>🔍 Recherche en cours...</p>";
+
+    try {
+        // Appel à l'API OpenFoodFacts
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${query}&search_simple=1&action=process&json=1&page_size=10`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        resultsDiv.innerHTML = ""; 
+
+        if (!data.products || data.products.length === 0) {
+            resultsDiv.innerHTML = "<p>Aucun résultat trouvé.</p>";
+            return;
+        }
+
+        data.products.forEach(product => {
+            const name = product.product_name_fr || product.product_name || "Produit inconnu";
+            const brand = product.brands || "Marque inconnue";
+            const image = product.image_front_small_url || "https://via.placeholder.com/50";
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style = "display:flex; align-items:center; gap:15px; margin-bottom:10px; text-align:left; padding:12px;";
+
+            card.innerHTML = `
+                <img src="${image}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
+                <div style="flex:1;">
+                    <strong style="font-size:0.9rem;">${name}</strong><br>
+                    <span style="font-size:0.75rem; color:#718096;">${brand}</span>
+                </div>
+                <button onclick="ajouterAlimentLocal('${product.code}', '${name.replace(/'/g, "\\'")}')" 
+                        style="background:var(--prim); color:white; border:none; padding:10px; border-radius:10px; cursor:pointer; font-weight:bold;">
+                    +
+                </button>
+            `;
+            resultsDiv.appendChild(card);
+        });
+    } catch (error) {
+        resultsDiv.innerHTML = "<p>Erreur de connexion.</p>";
+    }
+}
+
+// --- JALON 2 : STOCKAGE DANS LE TÉLÉPHONE ---
+function ajouterAlimentLocal(id, name) {
+    if (!db) {
+        alert("Base de données en cours d'initialisation...");
+        return;
+    }
+
+    const transaction = db.transaction(["aliments"], "readwrite");
+    const store = transaction.objectStore("aliments");
+
+    const nouvelAliment = {
+        id: id,
+        nom: name,
+        dateAjout: new Date().toISOString()
+    };
+
+    const request = store.add(nouvelAliment);
+
+    request.onsuccess = () => {
+        alert(`✅ ${name} ajouté !`);
+        showView('dash'); // On retourne voir le dashboard
+        chargerAlimentsFavoris(); // On rafraîchit la liste
+    };
+
+    request.onerror = () => {
+        alert("Cet aliment est déjà dans tes favoris.");
+    };
+}
+
+// --- JALON 2 : AFFICHAGE SUR LE DASHBOARD ---
+function chargerAlimentsFavoris() {
+    if (!db) return;
+
+    const transaction = db.transaction(["aliments"], "readonly");
+    const store = transaction.objectStore("aliments");
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+        const aliments = request.result;
+        const dashView = document.getElementById('dash-view');
+        
+        let htmlListe = '<h3 style="margin-top:25px; text-align:left;">Mes derniers ajouts</h3>';
+        
+        if (aliments.length === 0) {
+            htmlListe += '<p style="color:#a0aec0; font-size:0.9rem;">Ta liste est vide.</p>';
+        } else {
+            // On affiche les 5 derniers ajoutés
+            aliments.reverse().slice(0, 5).forEach(alim => {
+                htmlListe += `
+                    <div class="card" style="margin-bottom:10px; padding:15px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:500;">${alim.nom}</span>
+                        <span style="font-size:0.7rem; color:#cbd5e0;">${new Date(alim.dateAjout).toLocaleDateString()}</span>
+                    </div>
+                `;
+            });
+        }
+        
+        // Nettoyage et injection
+        const oldList = document.getElementById('ma-liste-aliments');
+        if (oldList) oldList.remove();
+        
+        const listDiv = document.createElement('div');
+        listDiv.id = 'ma-liste-aliments';
+        listDiv.innerHTML = htmlListe;
+        dashView.appendChild(listDiv);
+    };
+}
+
