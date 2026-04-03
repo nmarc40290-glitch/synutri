@@ -46,3 +46,26 @@ document.getElementById('btn-install').addEventListener('click', async () => {
         document.getElementById('install-container').style.display = 'none';
     }
 });
+
+// --- NAVIGATION ENTRE LES VUES ---
+function showView(viewName) {
+    const dash = document.querySelector('.container');
+    const search = document.getElementById('search-section');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    // On cache tout
+    dash.style.display = 'none';
+    search.style.display = 'none';
+    navItems.forEach(item => item.classList.remove('active'));
+
+    // On affiche la vue demandée
+    if (viewName === 'dash') {
+        dash.style.display = 'block';
+        navItems[0].classList.add('active');
+    } else if (viewName === 'search') {
+        search.style.display = 'block';
+        navItems[2].classList.add('active'); // L'item "Scanner"
+    }
+}
+
+// Modifie tes liens dans le HTML pour appeler showView('dash') ou showView('search')
