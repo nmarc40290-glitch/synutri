@@ -1,5 +1,4 @@
-
-// ==========================================
+ // ==========================================
 // 1. BASE DE DONNÉES (IndexedDB)
 // ==========================================
 let db;
@@ -156,10 +155,9 @@ function supprimerAlimentLocal(id) {
 // ==========================================
 // 6. DASHBOARD & ANIMATION
 // ==========================================
-let chart; // Variable globale pour le graphique
+let chart; 
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
-    // Calcul des pourcentages
     const pProt = Math.min((prot / 50) * 100, 100);
     const pSel = Math.min((sel / 5) * 100, 100);
     const pSucre = Math.min((sucre / 50) * 100, 100);
@@ -170,11 +168,11 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
                 dataLabels: {
                     total: {
                         show: true,
-                        label: score.toUpperCase(), // Nutri-score en haut
+                        label: score.toUpperCase(),
                         formatter: function() { 
-                            return kcal + ' kcal'; // Calories en dessous
+                            return kcal + ' kcal'; 
                         },
-                        color: getNutriColor(score)
+                        color: getNutriColor(score) // Applique la couleur au texte central
                     }
                 }
             }
@@ -232,8 +230,18 @@ const options = {
             hollow: { size: '55%' }, 
             track: { margin: 10 },
             dataLabels: {
-                name: { fontSize: '16px', color: '#718096', offsetY: -10 },
-                value: { fontSize: '22px', fontWeight: 'bold', offsetY: 5 },
+                name: { 
+                    fontSize: '32px',   // Grosse lettre Nutri-Score
+                    fontWeight: '800', 
+                    color: '#2d3748', 
+                    offsetY: -10 
+                },
+                value: { 
+                    fontSize: '18px',   // Calories
+                    fontWeight: '600', 
+                    color: '#718096', 
+                    offsetY: 15         
+                },
                 total: {
                     show: true,
                     label: 'SCORE',
@@ -246,4 +254,3 @@ const options = {
 
 chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
 chart.render();
-            
