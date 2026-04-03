@@ -65,7 +65,7 @@ async function rechercherAliment() {
     const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
-        const url = `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15`;
+        const url = `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&sort_by=unique_scans_n&json=1&page_size=15`;
         const response = await fetch(url, { 
             signal: controller.signal,
             headers: { 'Accept': 'application/json' }
