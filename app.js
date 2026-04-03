@@ -42,25 +42,25 @@ function toggleSidebar() {
 
 async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        // 1. On récupère toutes les installations de Service Workers
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
-            await registration.unregister(); // On désinstalle tout
+            await registration.unregister();
         }
         
-        // 2. On vide TOUS les caches nommés
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
 
-        // 3. On force le rechargement avec un "cache buster" (v=timestamp)
-        // Cela force le navigateur à ignorer son propre cache interne.
-        const url = new URL(window.location.href);
-        url.searchParams.set('v', Date.now()); 
+        // On crée une URL de redirection forcée
+        const newUrl = new URL(window.location.origin + window.location.pathname);
+        newUrl.searchParams.set('reload', Date.now()); 
         
-        alert("Mise à jour vers la v" + VERSION + "...");
-        window.location.replace(url.href);
+        alert("Mise à jour v" + VERSION + " en cours...");
+        
+        // On remplace l'URL actuelle, ce qui force le navigateur à tout re-télécharger
+        window.location.replace(newUrl.href);
     }
 }
+
 
 
 // --- PWA INSTALL ---
