@@ -1,7 +1,7 @@
 // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.5.0"; 
+const APP_JS_VERSION = "1.5.1"; 
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
@@ -176,7 +176,7 @@ function chargerAlimentsFavoris() {
 }
 
 // ==========================================
-// 7. INITIALISATION DU GRAPHIQUE
+// 7. INITIALISATION DU GRAPHIQUE (CORRIGÉ POUR ÉPAISSEUR)
 // ==========================================
 const options = {
     series: [0, 0, 0],
@@ -185,11 +185,14 @@ const options = {
     labels: ['Protéines', 'Sel', 'Sucres'],
     plotOptions: { 
         radialBar: { 
-            hollow: { size: '70%' }, 
-            track: { margin: 8 },
+            hollow: { size: '50%' }, // Réduit de 70% à 50% pour laisser plus de place aux anneaux
+            track: { 
+                margin: 1, // Réduit la marge entre les anneaux pour qu'ils soient collés
+                background: '#f2f2f2' 
+            },
             dataLabels: {
                 show: true,
-                name: { show: true, fontSize: '70px', fontWeight: '900', offsetY: -15 },
+                name: { show: true, fontSize: '80px', fontWeight: '900', offsetY: -15 },
                 value: { show: true, fontSize: '24px', fontWeight: '600', color: '#718096', offsetY: 25 },
                 total: {
                     show: true,
@@ -201,8 +204,8 @@ const options = {
         } 
     },
     stroke: { 
-        lineCap: 'round', 
-        width: 36 // <--- C'EST ICI ! Doublé par rapport à la version précédente
+        lineCap: 'round',
+        width: 0 // On remet à 0, c'est le hollow.size qui va donner l'épaisseur
     }
 };
 
