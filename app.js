@@ -1,7 +1,7 @@
-// ==========================================
+ // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.2.40"; // À changer manuellement à chaque modif
+const APP_JS_VERSION = "1.2.42"; 
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
@@ -153,9 +153,9 @@ function supprimerAlimentLocal(id) {
 }
 
 // ==========================================
-// 6. DASHBOARD & ANIMATION (POLICES XXL)
+// 6. DASHBOARD & ANIMATION
 // ==========================================
-let chart; 
+let chart; // Déclarée une seule fois ici
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
     const pProt = Math.min((prot / 50) * 100, 100);
@@ -169,11 +169,14 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
                     total: {
                         show: true,
                         label: score.toUpperCase(),
-                        color: getNutriColor(score), // Lettre colorée
+                        color: getNutriColor(score),
                         formatter: function() { 
                             return kcal + ' kcal'; 
                         }
-                    }
+                    },
+                    // On force la taille XXL ici aussi pour l'animation
+                    name: { fontSize: '60px', fontWeight: '800', offsetY: -15 },
+                    value: { fontSize: '22px', fontWeight: '600', offsetY: 25 }
                 }
             }
         },
@@ -204,7 +207,7 @@ function chargerAlimentsFavoris() {
                                 <span style="font-size:0.7rem; color:#cbd5e0;">${a.calories} kcal</span>
                             </div>
                         </div>
-                        <button onclick="event.stopPropagation(); supprimerAlimentLocal('${a.id}')" style="background:none; border:none;">🗑️</button>
+                        <button onclick="event.stopPropagation(); supprimerAlimentLocal('${a.id}')" style="background:none; border:none; font-size:1.2rem;">🗑️</button>
                     </div>`;
             });
         }
@@ -225,29 +228,35 @@ const options = {
     labels: ['Protéines', 'Sel', 'Sucres'],
     plotOptions: { 
         radialBar: { 
-            hollow: { size: '60%' }, 
-            track: { margin: 10 },
+            hollow: { size: '65%' }, // Donne plus de place au texte
+            track: { margin: 8 },
             dataLabels: {
+                show: true,
                 name: { 
-                    fontSize: '52px',   // TAILLE MASSIVE DU SCORE
+                    show: true,
+                    fontSize: '60px', 
                     fontWeight: '800', 
-                    offsetY: -10 
+                    color: '#2d3748',
+                    offsetY: -15 
                 },
                 value: { 
-                    fontSize: '20px',   // TAILLE CALORIES
+                    show: true,
+                    fontSize: '22px', 
                     fontWeight: '600', 
                     color: '#718096', 
                     offsetY: 25         
                 },
                 total: {
                     show: true,
-                    label: 'SCORE',
-                    formatter: function() { return "-"; }
+                    label: '-',
+                    formatter: function() { return "0 kcal"; }
                 }
             }
         } 
-    }
+    },
+    stroke: { lineCap: 'round' }
 };
 
+// Initialisation finale
 chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
 chart.render();
