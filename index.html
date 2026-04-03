@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -20,22 +20,22 @@
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001; }
         .menu-btn { position: fixed; top: 20px; left: 20px; font-size: 1.8rem; cursor: pointer; z-index: 1000; color: var(--prim); }
         
-        /* Dashboard Card */
+        /* Conteneurs de vues */
         .container { width: 90%; max-width: 450px; margin: 80px auto 20px; }
         .card { background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); text-align: center; }
         
-        /* Buttons */
+        /* Boutons */
         .btn { width: 100%; border: none; padding: 15px; border-radius: 14px; cursor: pointer; font-weight: 700; margin-bottom: 12px; font-size: 1rem; transition: 0.2s; }
         .btn-update { background: #feb2b2; color: #9b2c2c; }
         .btn-install { background: var(--prim); color: white; box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3); }
         
-        /* Nav Bar */
+        /* Barre de navigation basse */
         .navbar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { text-align: center; color: #cbd5e0; text-decoration: none; font-size: 0.7rem; font-weight: bold; transition: 0.2s; cursor: pointer; }
         .nav-item.active { color: var(--prim); }
         .nav-icon { font-size: 1.5rem; margin-bottom: 4px; }
 
-        /* Section Recherche Aliments */
+        /* Section Recherche */
         #search-section { display: none; padding: 20px; margin-top: 60px; }
         .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
         .search-input { flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 1rem; outline: none; }
@@ -53,10 +53,10 @@
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
         
         <div id="install-container" style="display:none;">
-            <button id="btn-install" class="btn btn-install">📲 Installer l'App</button>
+            <button type="button" id="btn-install" class="btn btn-install">📲 Installer l'App</button>
         </div>
         
-        <button class="btn btn-update" onclick="forceUpdate()">🔄 Forcer MAJ</button>
+        <button type="button" class="btn btn-update" onclick="forceUpdate()">🔄 Forcer MAJ</button>
         <p style="font-size: 0.7rem; color: #a0aec0; position: absolute; bottom: 20px;">Build: April 2026</p>
     </div>
 
@@ -65,13 +65,13 @@
             <h3 style="margin-top:0; color: var(--text);">Aujourd'hui</h3>
             <div id="pantry-chart"></div>
         </div>
-    </div>
+        </div>
 
-    <div id="search-section">
+    <div id="search-section" class="container">
         <h2 style="color: var(--prim);">Ajouter un aliment</h2>
         <div class="search-bar">
             <input type="text" id="search-input" class="search-input" placeholder="Ex: Poulet, Pomme...">
-            <button class="search-btn" onclick="rechercherAliment()">🔍</button>
+            <button type="button" class="search-btn" onclick="rechercherAliment()">🔍</button>
         </div>
         <div id="search-results"></div>
     </div>
@@ -93,9 +93,11 @@
 
     <script src="app.js"></script>
     <script>
+        // Enregistrement du Service Worker avec gestion de version
         if ('serviceWorker' in navigator) {
-            // Ajout du timestamp ici aussi pour être sûr que le SW est vérifié
-            navigator.serviceWorker.register('sw.js?v=' + VERSION);
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js?v=' + (typeof VERSION !== 'undefined' ? VERSION : Date.now()));
+            });
         }
     </script>
 </body>
