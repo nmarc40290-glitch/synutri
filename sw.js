@@ -1,5 +1,4 @@
 importScripts('version.js');
-// On s'assure que le nom du cache change bien avec la VERSION
 const CACHE_NAME = `synutri-v${VERSION}`;
 
 const ASSETS = [
@@ -12,59 +11,45 @@ const ASSETS = [
     './icon-512.png'
 ];
 
-// INSTALLATION : On force l'installation immédiate
+// INSTALLATION : On force l'installation et on saute l'attente
 self.addEventListener('install', (e) => {
     self.skipWaiting(); 
     e.waitUntil(
-        caches.open(CACHE_NAME).then(c => {
-            console.log("Caching assets for version:", VERSION);
-            return c.addAll(ASSETS);
-        })
+        caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))
     );
 });
 
-// ACTIVATION : On nettoie TOUS les anciens caches (ex: 1.2.7)
+// ACTIVATION : Nettoyage immédiat des anciens caches
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
-                keys.map(k => {
-                    if (k !== CACHE_NAME) {
-                        console.log("Deleting old cache:", k);
-                        return caches.delete(k);
-                    }
-                })
+                keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
             );
-        }).then(() => self.clients.claim())
+        }).then(() => self.clients.claim()) // Prend le contrôle des pages immédiatement
     );
 });
 
-// GESTION DES REQUÊTES (FETCH)
+// GESTION DES REQUÊTES : Stratégie ultra-rapide (Stale-While-Revalidate)
 self.addEventListener('fetch', (e) => {
-    // 1. Priorité absolue au réseau pour l'API OpenFoodFacts
+    // Ne pas intercepter les requêtes API (toujours réseau)
     if (e.request.url.includes('openfoodfacts.org')) {
-        e.respondWith(
-            fetch(e.request).catch(() => {
-                return new Response(JSON.stringify({ products: [] }), {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            })
-        );
-        return;
+        return; 
     }
 
-    // 2. Stratégie "Network-First" pour les fichiers de l'App (app.js, index.html)
-    // On essaie de récupérer la version en ligne, sinon on prend le cache.
     e.respondWith(
-        fetch(e.request)
-            .then(response => {
-                // Si on a le réseau, on renvoie la réponse fraîche
-                return response;
-            })
-            .catch(() => {
-                // Si pas de réseau (mode avion), on pioche dans le cache
-                return caches.match(e.request);
-            })
+        caches.match(e.request).then((cachedResponse) => {
+            const fetchPromise = fetch(e.request).then((networkResponse) => {
+                // On met à jour le cache en arrière-plan pour la prochaine fois
+                if (networkResponse && networkResponse.status === 200) {
+                    const cacheCopy = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, cacheCopy));
+                }
+                return networkResponse;
+            });
+
+            // On renvoie le cache s'il existe, sinon on attend le réseau
+            return cachedResponse || fetchPromise;
+        })
     );
 });
-                              
