@@ -159,7 +159,6 @@ function supprimerAlimentLocal(id) {
 let chart; // Variable globale pour le graphique
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
-function animerDisque(nom, kcal, prot, sucre, sel, score) {
     // Calcul des pourcentages
     const pProt = Math.min((prot / 50) * 100, 100);
     const pSel = Math.min((sel / 5) * 100, 100);
@@ -171,9 +170,9 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
                 dataLabels: {
                     total: {
                         show: true,
-                        label: score.toUpperCase(), // Le Nutri-score en haut
+                        label: score.toUpperCase(), // Nutri-score en haut
                         formatter: function() { 
-                            return kcal + ' kcal'; // Le nombre de calories juste en dessous
+                            return kcal + ' kcal'; // Calories en dessous
                         },
                         color: getNutriColor(score)
                     }
@@ -183,7 +182,6 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
         series: [Math.round(pProt), Math.round(pSel), Math.round(pSucre)]
     });
 }
-    
 
 function chargerAlimentsFavoris() {
     if (!db) return;
