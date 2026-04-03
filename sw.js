@@ -1,4 +1,5 @@
 importScripts('version.js');
+// On s'assure que le nom du cache change bien avec la VERSION
 const CACHE_NAME = `synutri-v${VERSION}`;
 
 const ASSETS = [
@@ -11,34 +12,59 @@ const ASSETS = [
     './icon-512.png'
 ];
 
+// INSTALLATION : On force l'installation immédiate
 self.addEventListener('install', (e) => {
     self.skipWaiting(); 
-    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
+    e.waitUntil(
+        caches.open(CACHE_NAME).then(c => {
+            console.log("Caching assets for version:", VERSION);
+            return c.addAll(ASSETS);
+        })
+    );
 });
 
+// ACTIVATION : On nettoie TOUS les anciens caches (ex: 1.2.7)
 self.addEventListener('activate', (e) => {
-    e.waitUntil(clients.claim()); 
-    e.waitUntil(caches.keys().then(keys => Promise.all(
-        keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
-    )));
+    e.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.map(k => {
+                    if (k !== CACHE_NAME) {
+                        console.log("Deleting old cache:", k);
+                        return caches.delete(k);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
 });
 
-// STRATÉGIE DE NAVIGATION RÉSEAU
+// GESTION DES REQUÊTES (FETCH)
 self.addEventListener('fetch', (e) => {
-    // CONDITION CRUCIALE : Si on cherche un aliment, on ignore le cache
+    // 1. Priorité absolue au réseau pour l'API OpenFoodFacts
     if (e.request.url.includes('openfoodfacts.org')) {
-        return e.respondWith(
+        e.respondWith(
             fetch(e.request).catch(() => {
-                // En cas de panne totale de réseau
-                return new Response(JSON.stringify({ error: "no-network" }), {
+                return new Response(JSON.stringify({ products: [] }), {
                     headers: { 'Content-Type': 'application/json' }
                 });
             })
         );
+        return;
     }
 
-    // Pour les fichiers de l'application (HTML, JS, CSS)
+    // 2. Stratégie "Network-First" pour les fichiers de l'App (app.js, index.html)
+    // On essaie de récupérer la version en ligne, sinon on prend le cache.
     e.respondWith(
-        fetch(e.request).catch(() => caches.match(e.request))
+        fetch(e.request)
+            .then(response => {
+                // Si on a le réseau, on renvoie la réponse fraîche
+                return response;
+            })
+            .catch(() => {
+                // Si pas de réseau (mode avion), on pioche dans le cache
+                return caches.match(e.request);
+            })
     );
 });
+                              
