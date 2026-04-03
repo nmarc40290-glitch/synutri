@@ -27,15 +27,16 @@
         /* Carte Dashboard */
         .card-main { background: var(--white); border-radius: 30px; padding: 25px; box-shadow: var(--shadow); text-align: center; margin-bottom: 30px; }
         
-        /* --- FORCE BRUTE NUTRI-SCORE XXL --- */
-        .apexcharts-datalabel-label {
-            font-size: 75px !important;
+        /* --- FORCE BRUTE TAILLE XXL (Sans bloquer la couleur) --- */
+        #pantry-chart .apexcharts-datalabel-label {
+            font-size: 80px !important;
             font-weight: 900 !important;
-            fill: currentColor !important;
+            /* On ne met SURTOUT PAS de 'fill' ou 'color' ici */
         }
-        .apexcharts-datalabel-value {
+        #pantry-chart .apexcharts-datalabel-value {
             font-size: 24px !important;
             font-weight: 600 !important;
+            fill: #718096 !important;
         }
         /* ---------------------------------- */
 
