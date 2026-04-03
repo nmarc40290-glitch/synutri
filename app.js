@@ -52,7 +52,7 @@ async function forceUpdate() {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
 
-        alert("Mise à jour prête. Synutri va redémarrer proprement.");
+        alert("Mise à jour prête. Synutri va redémarrer sur la dernière version.");
 
         // 3. LA MÉTHODE RADICALE : Redirection vers une URL avec un paramètre unique
         // On force le navigateur à oublier l'état actuel de la page.
