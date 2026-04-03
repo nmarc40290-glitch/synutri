@@ -1,7 +1,7 @@
 // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.2.36"; // À changer manuellement à chaque modif
+const APP_JS_VERSION = "1.2.40"; // À changer manuellement à chaque modif
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
