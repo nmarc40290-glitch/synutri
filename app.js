@@ -1,7 +1,7 @@
 // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.2.45"; 
+const APP_JS_VERSION = "1.5.0"; 
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
@@ -200,7 +200,10 @@ const options = {
             }
         } 
     },
-    stroke: { lineCap: 'round' }
+    stroke: { 
+        lineCap: 'round', 
+        width: 36 // <--- C'EST ICI ! Doublé par rapport à la version précédente
+    }
 };
 
 chart = new ApexCharts(document.querySelector("#pantry-chart"), options);
