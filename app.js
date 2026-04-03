@@ -159,7 +159,8 @@ function supprimerAlimentLocal(id) {
 let chart; // Variable globale pour le graphique
 
 function animerDisque(nom, kcal, prot, sucre, sel, score) {
-    // Calcul des pourcentages basés sur des apports journaliers recommandés (AJR)
+function animerDisque(nom, kcal, prot, sucre, sel, score) {
+    // Calcul des pourcentages
     const pProt = Math.min((prot / 50) * 100, 100);
     const pSel = Math.min((sel / 5) * 100, 100);
     const pSucre = Math.min((sucre / 50) * 100, 100);
@@ -169,8 +170,11 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
             radialBar: {
                 dataLabels: {
                     total: {
-                        label: nom.substring(0, 12) + (nom.length > 12 ? '..' : ''),
-                        formatter: function() { return score.toUpperCase(); },
+                        show: true,
+                        label: score.toUpperCase(), // Le Nutri-score en haut
+                        formatter: function() { 
+                            return kcal + ' kcal'; // Le nombre de calories juste en dessous
+                        },
                         color: getNutriColor(score)
                     }
                 }
@@ -179,6 +183,7 @@ function animerDisque(nom, kcal, prot, sucre, sel, score) {
         series: [Math.round(pProt), Math.round(pSel), Math.round(pSucre)]
     });
 }
+    
 
 function chargerAlimentsFavoris() {
     if (!db) return;
