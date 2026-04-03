@@ -1,7 +1,7 @@
 // ==========================================
 // 0. CONTRÔLE DE VERSION INTERNE
 // ==========================================
-const APP_JS_VERSION = "1.5.1"; 
+const APP_JS_VERSION = "1.5.2"; 
 console.log("App.js chargé : v" + APP_JS_VERSION);
 
 // ==========================================
@@ -176,36 +176,70 @@ function chargerAlimentsFavoris() {
 }
 
 // ==========================================
-// 7. INITIALISATION DU GRAPHIQUE (CORRIGÉ POUR ÉPAISSEUR)
+// 7. INITIALISATION DU GRAPHIQUE
 // ==========================================
 const options = {
     series: [0, 0, 0],
-    chart: { height: 380, type: 'radialBar' },
+    chart: { 
+        height: 380, 
+        type: 'radialBar',
+        toolbar: { show: false }
+    },
     colors: ['#38b2ac', '#ed8936', '#4299e1'], 
     labels: ['Protéines', 'Sel', 'Sucres'],
+    legend: {
+        show: true,
+        position: 'bottom',
+        horizontalAlign: 'center',
+        fontSize: '12px',
+        fontFamily: 'inherit',
+        fontWeight: 600,
+        offsetY: 10,
+        markers: { width: 10, height: 10, radius: 12 },
+        itemMargin: {
+            horizontal: 10,
+            vertical: 5 // Permet de mieux respirer si ça passe sur deux lignes
+        },
+        formatter: function(seriesName, opts) {
+            return seriesName; // Affiche "Protéines", "Sel", etc.
+        }
+    },
     plotOptions: { 
         radialBar: { 
-            hollow: { size: '50%' }, // Réduit de 70% à 50% pour laisser plus de place aux anneaux
+            hollow: { size: '50%' }, 
             track: { 
-                margin: 1, // Réduit la marge entre les anneaux pour qu'ils soient collés
+                margin: 1, 
                 background: '#f2f2f2' 
             },
             dataLabels: {
                 show: true,
-                name: { show: true, fontSize: '80px', fontWeight: '900', offsetY: -15 },
-                value: { show: true, fontSize: '24px', fontWeight: '600', color: '#718096', offsetY: 25 },
+                name: { 
+                    show: true, 
+                    fontSize: '80px', 
+                    fontWeight: '900', 
+                    offsetY: -15 
+                },
+                value: { 
+                    show: true, 
+                    fontSize: '24px', 
+                    fontWeight: '600', 
+                    color: '#718096', 
+                    offsetY: 25 
+                },
                 total: {
                     show: true,
                     label: '-',
                     color: '#cbd5e0',
-                    formatter: () => "0 kcal"
+                    formatter: function(w) {
+                        return "0 kcal";
+                    }
                 }
             }
         } 
     },
     stroke: { 
         lineCap: 'round',
-        width: 0 // On remet à 0, c'est le hollow.size qui va donner l'épaisseur
+        width: 0 
     }
 };
 
