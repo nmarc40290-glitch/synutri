@@ -1,33 +1,104 @@
-importScripts('version.js');
-const CACHE_NAME = `synutri-v${VERSION}`;
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Synutri</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <script>
+        document.write('<script src="version.js?v=' + Date.now() + '"><\/script>');
+    </script>
+    
+    <style>
+        :root { --bg: #f7fafc; --prim: #38b2ac; --sec: #ed8936; --acc: #4299e1; --white: #fff; --text: #2d3748; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 90px; color: var(--text); overflow-x: hidden; }
+        
+        /* Sidebar & Overlay */
+        #sidebar { position: fixed; top: 0; left: -290px; width: 260px; height: 100%; background: var(--white); box-shadow: 4px 0 20px rgba(0,0,0,0.1); z-index: 1002; transition: 0.3s ease; padding: 20px; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001; }
+        .menu-btn { position: fixed; top: 20px; left: 20px; font-size: 1.8rem; cursor: pointer; z-index: 1000; color: var(--prim); }
+        
+        /* Conteneurs de vues */
+        .container { width: 90%; max-width: 450px; margin: 80px auto 20px; }
+        .card { background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); text-align: center; }
+        
+        /* Boutons */
+        .btn { width: 100%; border: none; padding: 15px; border-radius: 14px; cursor: pointer; font-weight: 700; margin-bottom: 12px; font-size: 1rem; transition: 0.2s; }
+        .btn-update { background: #feb2b2; color: #9b2c2c; }
+        .btn-install { background: var(--prim); color: white; box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3); }
+        
+        /* Barre de navigation basse */
+        .navbar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { text-align: center; color: #cbd5e0; text-decoration: none; font-size: 0.7rem; font-weight: bold; transition: 0.2s; cursor: pointer; }
+        .nav-item.active { color: var(--prim); }
+        .nav-icon { font-size: 1.5rem; margin-bottom: 4px; }
 
-const ASSETS = [
-    './',
-    './index.html',
-    './app.js',
-    './version.js',
-    './manifest.json'
-];
+        /* Section Recherche */
+        #search-section { display: none; padding: 20px; margin-top: 60px; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-input { flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 1rem; outline: none; }
+        .search-btn { padding: 15px; border-radius: 12px; background: var(--prim); color: white; border: none; font-size: 1.2rem; cursor: pointer; }
+    </style>
+</head>
+<body>
 
-self.addEventListener('install', (e) => {
-    self.skipWaiting(); 
-    e.waitUntil(
-        caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))
-    );
-});
+    <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+    <div id="overlay" onclick="toggleSidebar()"></div>
 
-self.addEventListener('activate', (e) => {
-    e.waitUntil(
-        caches.keys().then(keys => Promise.all(
-            keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : null)
-        )).then(() => self.clients.claim())
-    );
-});
+    <div id="sidebar">
+        <h2 style="color: var(--prim); margin-top: 40px;">Synutri</h2>
+        <p>Version: <span id="app-version" style="color: var(--sec); font-weight: bold;"></span></p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        
+        <div id="install-container" style="display:none;">
+            <button type="button" id="btn-install" class="btn btn-install">📲 Installer l'App</button>
+        </div>
+        
+        <button type="button" class="btn btn-update" onclick="forceUpdate()">🔄 Forcer MAJ</button>
+        <p style="font-size: 0.7rem; color: #a0aec0; position: absolute; bottom: 20px;">Build: April 2026</p>
+    </div>
 
-self.addEventListener('fetch', (e) => {
-    if (e.request.url.includes('openfoodfacts.org')) {
-        e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ products: [] }))));
-        return;
-    }
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-});
+    <div class="container" id="dash-view">
+        <div class="card">
+            <h3 style="margin-top:0; color: var(--text);">Aujourd'hui</h3>
+            <div id="pantry-chart"></div>
+        </div>
+        </div>
+
+    <div id="search-section" class="container">
+        <h2 style="color: var(--prim);">Ajouter un aliment</h2>
+        <div class="search-bar">
+            <input type="text" id="search-input" class="search-input" placeholder="Ex: Poulet, Pomme...">
+            <button type="button" class="search-btn" onclick="rechercherAliment()">🔍</button>
+        </div>
+        <div id="search-results"></div>
+    </div>
+
+    <nav class="navbar">
+        <a href="javascript:void(0)" onclick="showView('dash')" class="nav-item active" id="nav-dash">
+            <div class="nav-icon">📊</div>Dashboard
+        </a>
+        <a href="javascript:void(0)" class="nav-item">
+            <div class="nav-icon">📅</div>Planning
+        </a>
+        <a href="javascript:void(0)" onclick="showView('search')" class="nav-item" id="nav-search">
+            <div class="nav-icon">📷</div>Scanner
+        </a>
+        <a href="javascript:void(0)" class="nav-item">
+            <div class="nav-icon">🛒</div>Courses
+        </a>
+    </nav>
+
+    <script src="app.js"></script>
+    <script>
+        // Enregistrement du Service Worker avec gestion de version
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js?v=' + (typeof VERSION !== 'undefined' ? VERSION : Date.now()));
+            });
+        }
+    </script>
+</body>
+</html>
