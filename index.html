@@ -46,6 +46,21 @@
         </div>
     </div>
 
+     <div id="search-section" style="display:none; padding: 20px; margin-top: 60px;">
+    <h2 style="color: var(--prim);">Ajouter un aliment</h2>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <input type="text" id="search-input" placeholder="Ex: Blanc de poulet..." 
+               style="flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 1rem;">
+        <button onclick="rechercherAliment()" 
+                style="padding: 15px; border-radius: 12px; background: var(--prim); color: white; border: none; font-size: 1.2rem;">🔍</button>
+    </div>
+
+    <div id="search-results">
+        </div>
+</div>
+    
+    
     <nav class="navbar">
         <a href="#" class="nav-item active"><div class="nav-icon">📊</div>Dashboard</a>
         <a href="#" class="nav-item"><div class="nav-icon">📅</div>Planning</a>
