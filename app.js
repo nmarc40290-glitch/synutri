@@ -40,18 +40,25 @@ function toggleSidebar() {
     ov.style.display = open ? "none" : "block";
 }
 
-function forceUpdate() {
+async function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-            for(let r of regs) r.unregister();
-            caches.keys().then(keys => {
-                return Promise.all(keys.map(k => caches.delete(k)));
-            }).then(() => {
-                alert("Mise à jour vers la version " + VERSION + " en cours...");
-                // Le "true" force le rechargement depuis le serveur et non le cache
-                window.location.reload(true); 
-            });
-        });
+        // 1. On récupère toutes les installations de Service Workers
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            await registration.unregister(); // On désinstalle tout
+        }
+        
+        // 2. On vide TOUS les caches nommés
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+        // 3. On force le rechargement avec un "cache buster" (v=timestamp)
+        // Cela force le navigateur à ignorer son propre cache interne.
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', Date.now()); 
+        
+        alert("Mise à jour vers la v" + VERSION + "...");
+        window.location.replace(url.href);
     }
 }
 
